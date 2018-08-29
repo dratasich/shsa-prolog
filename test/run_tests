@@ -1,0 +1,38 @@
+#!/bin/bash
+
+scriptdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+
+CMD="problog -L $scriptdir/../include/"
+testfiles="$(ls "$scriptdir"/test_*.pl)"
+
+# colors
+# https://gist.github.com/elucify/c7ccfee9f13b42f11f81
+RESTORE=$(echo -en '\033[0m')
+RED=$(echo -en '\033[00;31m')
+GREEN=$(echo -en '\033[00;32m')
+
+PASS="$GREEN[PASS ]$RESTORE"
+FAIL="$RED[FAIL ]$RESTORE"
+ERROR="$RED[ERROR]$RESTORE"
+
+execute () {
+    test=$1
+    result=$($CMD $test)
+    status=$(echo $?)
+    if (( $status != 0 )); then
+        echo $ERROR $test
+        return
+    fi
+    failed_num=$(echo "$result" | grep "\s*0\s*$" | wc -l)
+    if (( $failed_num > 0 )); then
+        echo $FAIL $test
+        return
+    fi
+    echo $PASS $test
+}
+
+# run all test files
+for test in $testfiles
+do
+    execute $test
+done
