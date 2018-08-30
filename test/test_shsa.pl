@@ -6,9 +6,9 @@
 %% a SHSA knowledge base
 
 % structure
-relation(a,r1,[b,c]).
-relation(a,r2,[d]).
-relation(b,r3,[e]).
+function(a,r1,[b,c]).
+function(a,r2,[d]).
+function(b,r3,[e]).
 
 % itoms
 itomsOf(a,[a1]).
@@ -28,7 +28,7 @@ accuracy(d2,0.9).
 query(node(a)).
 query(node(r1)).
 query(variable(a)).
-query(function(r1)).
+query(relation(r1)).
 query(variable(b)).
 query(variable(c)).
 query(edge(r1,a)).

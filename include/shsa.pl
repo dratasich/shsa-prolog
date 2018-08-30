@@ -6,13 +6,13 @@
 % node .. variable or function
 % a relation is a function out = f([in1, in2, ..])
 node(X) :- variable(X).
-node(X) :- function(X).
-variable(O) :- relation(O,F,I).
-variable(V) :- relation(O,F,I), member(V,I).
-function(F) :- relation(O,F,I).
-% structure from relation(..) facts
-edge(F,O) :- relation(O,F,I).
-edge(V,F) :- relation(O,F,I), member(V,I).
+node(X) :- relation(X).
+variable(O) :- function(O,F,I).
+variable(V) :- function(O,F,I), member(V,I).
+relation(F) :- function(O,F,I).
+% structure from function(..) facts
+edge(F,O) :- function(O,F,I).
+edge(V,F) :- function(O,F,I), member(V,I).
 
 % itom .. information atom of a variable
 % itoms may be available, i.e., itom(name)=true, or not
@@ -30,5 +30,5 @@ allProvided([]).
 allProvided([H|T]) :- provided(H), allProvided(T).
 
 % substitution
-substitution(O,F,IL) :- relation(O,F,IL),
+substitution(O,F,IL) :- function(O,F,IL),
                         allProvided(IL).
