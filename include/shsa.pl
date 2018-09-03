@@ -1,6 +1,6 @@
 %% ProbLog library for SHSA knowledge base
 
-:- use_module(library(list)).
+:- use_module(library(lists)).
 
 
 % node .. variable or function

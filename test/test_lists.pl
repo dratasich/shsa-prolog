@@ -1,6 +1,6 @@
 % Tests list library
 
-:- use_module(library(list)).
+:- use_module(library(lists)).
 
 
 %% testcases
