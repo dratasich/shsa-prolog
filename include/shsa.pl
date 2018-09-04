@@ -7,23 +7,24 @@
 % a relation is a function out = f([in1, in2, ..])
 node(X) :- variable(X).
 node(X) :- relation(X).
-variable(O) :- function(O,F,I).
-variable(V) :- function(O,F,I), member(V,I).
-relation(F) :- function(O,F,I).
+variable(O) :- function(O,_,_).
+variable(V) :- function(_,_,I), member(V,I).
+relation(R) :- function(_,R,_).
 % structure from function(..) facts
-edge(F,O) :- function(O,F,I).
-edge(V,F) :- function(O,F,I), member(V,I).
+edge(R,O) :- function(O,R,_).
+edge(V,R) :- function(_,R,I), member(V,I).
 
 % itom .. information atom of a variable
 % itoms may be available, i.e., itom(name)=true, or not
-itom(I) :- itomsOf(V,IL), member(I,IL).
+itom(I) :- itomsOf(_,IL), member(I,IL).
 
 % the associated variable to an itom is provided (by the existing itom)
 % a variable can also be provided by a substitution
-providedByItom(V) :- variable(V), itomsOf(V,IL),
+providedByItom(V,I) :- variable(V), itomsOf(V,IL),
                      member(I,IL), itom(I).
-provided(V) :- providedByItom(V).
-provided(V) :- substitution(V,F,IL).
+provided(V) :- providedByItom(V,_).
+provided(V) :- function(V,_,IL),
+               allProvided(IL).
 
 % all variables of a list are provided
 allProvided([]).
