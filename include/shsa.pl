@@ -30,6 +30,20 @@ provided(V) :- function(V,_,IL),
 allProvided([]).
 allProvided([H|T]) :- provided(H), allProvided(T).
 
+
+%
 % substitution
-substitution(O,F,IL) :- function(O,F,IL),
-                        allProvided(IL).
+% - recursive implementation
+% - limitations: no cycles allowed (needs visited node implementation)
+
+% a valid substitution of O
+substitution(O,O) :- providedByItom(O,_).
+substitution(O,[function(O,R,IL)|FLinputs]) :-
+    function(O,R,IL), allProvided(IL),
+    substitutionInputs(IL,FLinputs).
+
+% collects one substitution for each variable in the list [V|Rest]
+substitutionInputs([],[]).
+substitutionInputs([V|Rest],[FLvar|FLrest]) :-
+    substitution(V,FLvar),
+    substitutionInputs(Rest,FLrest).
