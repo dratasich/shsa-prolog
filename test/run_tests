@@ -17,7 +17,7 @@ ERROR="$RED[ERROR]$RESTORE"
 
 execute () {
     test=$1
-    result=$(timeout -s SIGINT --preserve-status 3.0s $CMD $test)
+    result=$($CMD --timeout 3 $test)
     status=$(echo $?)
     if (( $status != 0 )); then
         echo $ERROR $test
