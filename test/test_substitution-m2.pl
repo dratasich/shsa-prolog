@@ -6,20 +6,34 @@
 %% a SHSA knowledge base
 % (cyclic)
 
-% structure
-function(a,r1,[b]).
-function(a,r2,[c]).
-function(b,r31,[c]).
-% no visited node implementation, cycles are not (yet) allowed
-%function(c,r32,[b]).
 
-% itoms
-itomsOf(c,[c1]).
+% graph 1
+function(a,r1,[b]).
+function(b,r2,[a]).
+
+itomsOf(a,[a1]).
+itomsOf(b,[b1]).
+
+
+% graph 2
+function(z,rr1,[y]).
+function(y,rr2,[x]).
+function(x,rr3,[w]).
+function(w,rr4,[z]).
+
+%itomsOf(z,[z1]).
+itomsOf(y,[y1]).
+itomsOf(w,[w1]).
 
 
 %% testcases
 
-%% % substitution
-query(substitution(a,X)).
-query(substitution(a,[function(a,r1,[b]), [function(b,r31,[c]), c]])).
-query(substitution(a,[function(a,r2,[c]), c])).
+% graph 1
+%query(substitution(a,X)).
+query(substitution(a,[function(a,r1,[b]), b])).
+query(substitution(a,a)).
+
+% graph 2
+%query(substitution(z,X)).
+query(substitution(z,[function(z,rr1,[y]), [function(y,rr2,[x]), [function(x,rr3,[w]), w]]])).
+query(substitution(z,[function(z,rr1,[y]), y])).
