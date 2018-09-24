@@ -31,8 +31,18 @@ execute () {
     echo $PASS $test
 }
 
-# run all test files
+# run all prolog test files
 for test in $testfiles
 do
     execute $test
 done
+
+# run python tests
+python_test="python -m unittest discover"
+cd $scriptdir/..; $python_test
+status=$(echo $?)
+if (( $status == 0 )); then
+    echo $PASS $python_test
+else
+    echo $ERROR $python_test
+fi
