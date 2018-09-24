@@ -29,7 +29,7 @@ args = parser.parse_args()
 #
 
 # the models need the path to our custom library
-problog.library_paths.append("include")
+problog.library_paths.append("model")
 
 # load basic model from file
 program = ""
