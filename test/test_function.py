@@ -24,6 +24,7 @@ class FunctionTestCase(unittest.TestCase):
                                "wrong execute result")
         with self.assertRaises(Exception):
             self.__f1.execute({'a': 0})
+        with self.assertRaises(Exception):
             self.__f1.execute({'b': 0})
 
     def test_equal(self):

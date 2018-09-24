@@ -55,7 +55,7 @@ class Function(object):
         # code += textwrap.indent(u_code, "    ")
         code += textwrap.indent(self.__code, "    ")
         code += "\n    return " + self.__vout
-        code += "\n\nresult = " + self.__name + "(" + params + ")"
+        code += "\n\n" + self.__vout + " = " + self.__name + "(" + params + ")"
         return code
 
     def execute(self, itoms):
@@ -72,7 +72,7 @@ class Function(object):
         # execute code
         local_vars = itoms
         exec(code, None, local_vars)
-        return local_vars['result']
+        return local_vars[self.__vout]
 
     def __str__(self):
         return self.__enclosed_code()
