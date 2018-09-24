@@ -13,7 +13,7 @@
 
 % Introducing the time aspect for state-based relations:
 %
-% - Introduce a timestamp variable for each itom which has a timestamp
+% - Introduce a timestamp variable for each itom
 % - A timestamp is related to a value and cannot be separated into another
 %   variable. This means, we cannot specify
 %   itomsOf(variable t_x,[itom_tx1,itom_tx2])
@@ -29,32 +29,32 @@ providedByItom(t(V),I) :- providedByItom(V,I).
 
 % SHSA knowledge base of the rover
 
-function(x,rx1,[x,t(x),t,v,w]).
-function(x,rx2,[x,t(x),t,vx]).
-function(y,ry1,[y,t(y),t,v,w]).
-function(y,ry2,[y,t(y),t,vy]).
+% kinematic model
+% see also "Probabilistic Robotics"
 
-function(v,rv1,[vx,vy]).
-function(v,rv2,[vl,vr]).
-function(v,rv3,[v,t(v),t,a]).
-function(vx,rvx1,[vx,t(vx),t,ax]).
-function(vy,rvy1,[vy,t(vy),t,ay]).
+% robot pose (x,y,h) = (location, heading)
+% heading = 0 -> points to direction of x-axis
+function(x, rx1, [x_last,t(x_last),t,v,w]).
+function(x, rx2, [x_last,t(x_last),t,vx]).
+function(y, ry1, [y_last,t(y_last),t,v,w]).
+function(y, ry2, [y_last,t(y_last),t,vy]).
+function(h, rh1, [h_last,t(h_last),t,w]).
 
-function(w,rw1,[vx,vy]).
-function(w,rw2,[vl,vr]).
+function(v, rv1, [vx,vy]).
+function(v, rv2, [vl,vr]).
+function(v, rv3, [v_last,t(v_last),t,a]).
+function(vx,rvx1,[vx_last,t(vx_last),t,ax]).
+function(vx,rvx2,[x,t,x_last,t(x_last)]).
+function(vy,rvy1,[vy_last,t(vy_last),t,ay]).
+function(vy,rvy2,[y,t,y_last,t(y_last)]).
 
-function(a,ra1,[ax,ay]).
+function(w, rw1, [vx,vy]).
+function(w, rw2, [vl,vr]).
+function(w, rw3, [h,t,h_last,t(h_last)]).
+function(w, rw4, [t,x,x_last,t(x_last),y,y_last,t(y_last)]).
 
-% provided itoms - appended by monitor (flexible availability)
+function(a, ra1, [ax,ay]).
 
-itomsOf(t,[t]).
-itomsOf(x,[x]).
-itomsOf(y,[y]).
-itomsOf(v,[v]).
-itomsOf(w,[w_gyro,w_enc]).
-itomsOf(a,[a]).
-
-query(provided(t(x))).
-query(substitution(x,X)).
-query(function(x,rx1,[x,t(x),t,v,w])).
-query(allProvided([x,t(x),t,v,w])).
+% provided itoms will be appended by monitor
+% - why: flexible/changing availability is possible
+% - implementation: available itoms extracted from the csv
