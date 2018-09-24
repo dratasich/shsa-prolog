@@ -36,6 +36,7 @@ edge(V,R) :- function(_,R,I), member(V,I).
 % itoms may be available, i.e., itom(name)=true, or not
 itom(I) :- itomsOf(_,IL), member(I,IL).
 
+% TODO: define value and time of an itom
 
 % Note, we do not check if V is a variable, or R is a relation (the interpreter
 % would need to search a corresponding function which makes the check slow)!

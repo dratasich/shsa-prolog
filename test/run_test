@@ -1,7 +1,7 @@
 #!/bin/bash
 
 scriptdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
-CMD="problog -L $scriptdir/../include/"
+CMD="problog -L $scriptdir/../model/"
 
 usage () {
     echo "USAGE: run_test TESTFILE"

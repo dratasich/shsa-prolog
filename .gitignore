@@ -2,3 +2,6 @@
 #*#
 *.log
 *.bak
+
+# generated
+*.pdf
