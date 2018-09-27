@@ -12,6 +12,8 @@ class Function(object):
     """Function class."""
 
     def __init__(self, vout, vin, code, name="fct"):
+        if len(set(vin) & set([vout])) > 0:
+            raise RuntimeError("Not supported: output variable is also an input.")
         self.__vin = vin
         """List of input variables."""
         self.__vout = vout
@@ -37,6 +39,14 @@ class Function(object):
     @output_variable.setter
     def output_variable(self, vout):
         self.__vout = vout
+
+    @property
+    def code(self):
+        return self.__code
+
+    @property
+    def name(self):
+        return self.__name
 
     def __enclosed_code(self):
         # # prepend utils to code (additional python files with functions
@@ -66,16 +76,16 @@ class Function(object):
         """
         # verify inputs
         if not set(self.__vin).issubset(set(itoms.keys())):
-            raise RuntimeError("Missing itoms to execute the substitution.")
+            raise RuntimeError("Missing itoms to execute the function.")
         # generate code
         code = self.__enclosed_code()
         # execute code
         local_vars = itoms
         exec(code, None, local_vars)
-        return local_vars[self.__vout]
+        return local_vars
 
     def __str__(self):
-        return self.__enclosed_code()
+        return self.__name
 
     def __eq__(self, other):
         return (self.__vout == other.__vout) \
