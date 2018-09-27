@@ -7,7 +7,8 @@ __author__ = Denise Ratasich
 """
 
 import argparse
-import problog
+
+from model.problog_interface import ProblogInterface
 
 
 #
@@ -28,13 +29,8 @@ args = parser.parse_args()
 # load the model
 #
 
-# the models need the path to our custom library
-problog.library_paths.append("model")
-
-# load basic model from file
-program = ""
-with open(args.model, 'r') as f:
-    program = f.read()
+pli = ProblogInterface(librarypaths=["./model/"])
+pli.load(args.model)
 
 
 #
@@ -59,31 +55,12 @@ except Exception as e:
 
 
 # append available itoms to program with "itomsOf(variable,[itom1,..])"
-program += "\n"
+program = "\n"
 for variable, itoms in availability.items():
     program += "itomsOf({},[{}]).\n".format(variable, ','.join(itoms))
 
-print("Program:\n{}".format(program))
-
-
-#
-# helpers for query evaluation
-#
-
-def evaluate(program, queries):
-    additional = "\n"
-    for query in queries:
-        additional += "query({}).\n".format(query)
-    model = problog.program.PrologString(program + additional)
-    result = problog.get_evaluatable().create_from(model).evaluate()
-    return result
-
-def parse_substitution(variable, term):
-    """Parses substiution(variable,term)."""
-    searchstr = "substitution(" + str(variable) + ","
-    start = term.find(searchstr)
-    end = term.rfind(")")
-    return term[start+len(searchstr):end]
+pli.append(program)
+print("Program:\n{}".format(pli.program))
 
 
 #
@@ -91,14 +68,12 @@ def parse_substitution(variable, term):
 #
 
 # get all valid substitutions for v
-queries = ["substitution(v,S)"]
-result = evaluate(program, queries)
-# result is a dictionary of {substitution(v,..): 1.0}
-print("Queries:\n{}".format(queries))
+result = pli.evaluate("query(substitution(v,S)).")
+S = []
 for r in result.keys():
-    # extract substitution
-    prolog_substitution = parse_substitution("v", str(r))
-    print("  -> " + str(prolog_substitution))
+    print(r)
+    # S.append(pli.parse_substitution(str(r)))
+print(S)
 
 # TODO: execute python functions to get values in common domain
 # TODO: agreement on values (Python or Prolog program)
