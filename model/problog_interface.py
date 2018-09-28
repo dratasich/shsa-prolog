@@ -8,6 +8,7 @@ __author__ = Denise Ratasich
 
 import re
 import problog
+import pyparsing as pp
 
 from model.function import Function
 from model.substitution import Substitution
@@ -25,6 +26,8 @@ class ProblogInterface(object):
         # concatenate problog (program) files
         for plfile in plfiles:
             self.load(plfile)
+        # create parsers for problog
+        self.__init_problog_parser()
 
     @property
     def program(self):
@@ -51,6 +54,36 @@ class ProblogInterface(object):
         result = problog.get_evaluatable().create_from(model).evaluate()
         return result
 
+    def __init_problog_parser(self):
+        # matches variable/relation names
+        try:
+            # BNF
+            # name should at least match 'function' or 'substitution'
+            fct_name = pp.Word(pp.alphas + "_").setResultsName('function')
+            fct_open = pp.Literal("(").suppress()
+            fct_close = pp.Literal(")").suppress()
+            list_open = pp.Literal("[").suppress()
+            list_close = pp.Literal("]").suppress()
+            delimiter = pp.Literal(",").suppress()
+            # parameters
+            identifier = pp.Word(pp.alphanums + "_").setResultsName('identifier')
+            alist = pp.Group(list_open + identifier + (delimiter + identifier)*(0,5) + list_close).setResultsName('list')
+            parameter = identifier ^ alist
+            parameters = pp.Group(parameter + (delimiter + parameter)*(0,5)).setResultsName('parameters')
+            # function (general)
+            function = fct_name + fct_open + parameters + fct_close
+            # shsa 'function': function(vout, relation, [vin1, ..])
+            vout = identifier.copy().setResultsName('output')
+            relation = identifier.copy().setResultsName('relation')
+            vin = alist.copy().setResultsName('inputs')
+            shsa_function = pp.Literal("function").suppress() + fct_open \
+                            + vout + delimiter \
+                            + relation + delimiter \
+                            + vin + fct_close
+            self.__function_parser = shsa_function
+        except Exception as e:
+            raise RuntimeError("error parsing")
+
     def parse_function(self, term):
         """Creates a function object from a function string.
 
@@ -58,11 +91,10 @@ class ProblogInterface(object):
 
         """
         try:
-            result = re.search("function\(\s*([0-9a-zA-Z_]*)\s*,\s*([0-9a-zA-Z_]*)\s*,\s*\[(.*)\]\s*\)", term)
-            vout = result.group(1)
-            relation = result.group(2)
-            vin = result.group(3).split(",")
-            vin = [v.strip() for v in vin]
+            result = self.__function_parser.parseString(term)
+            vout = result['output']
+            relation = result['relation']
+            vin = result['inputs']
         except Exception as e:
             raise RuntimeError("Failed to parse '{}'. {}".format(term, e))
         code = self.__get_code_of(relation)
@@ -90,21 +122,4 @@ class ProblogInterface(object):
         term -- string with the format: substitution(vout,[function..])
 
         """
-        try:
-            result = re.search("substitution\(\s*([0-9a-zA-Z_]*)\s*,\s*\[(.*)\]\s*\)", term)
-            variable = result.group(1)
-            subterm = result.group(2)
-        except:
-            raise RuntimeError("Failed to parse '{}'. {}".format(term, e))
-        fcts = __parse_substitution(variable, subterm)
-        return Substitution(variable, fcts)
-
-    def __parse_substitution(self, root, term, functions=[]):
-        """Recursively parses term for the substitution of root.
-
-        """
-        # [..] a substitution with the format: [function(..), input variables]
-        # stop condition: root == term or no more starting with a '['
-        f = self.__parse_function(term)
-        functions.append(f)
-        return functions
+        pass
