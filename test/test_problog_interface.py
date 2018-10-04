@@ -39,10 +39,12 @@ class ProblogInterfaceTestCase(unittest.TestCase):
         # problog needs some clauses to be able to evaluate (e.g., get the code)
         # the code is retrieved from an implementation(relation_name,..) clause
         pli.append('implementation(r1,"a = b + c").')
+        pli.append('implementation(rstep,"a = (t - t(a_last))*0.1 + a_last").')
         # valid formats
         pli.parse_function("function(a,r1,[b,c])")
         pli.parse_function("function( a , r1 , [b,c])")
         pli.parse_function("function( a , r1 , [ b , c ] )")
+        pli.parse_function("function( a, rstep, [t, a_last, t(a_last)])")
         # test initialization of function
         f = pli.parse_function("function( a , r1 , [b,c])")
         self.assertEqual(f.vout, 'a')
@@ -69,6 +71,7 @@ class ProblogInterfaceTestCase(unittest.TestCase):
         pli = ProblogInterface()
         pli.append('implementation(r1,"a = b + c").')
         pli.append('implementation(r2,"c = 2 * d").')
+        pli.append('implementation(rstep,"a = (t - t(a_last))*0.1 + a_last").')
         # empty substitution, vout is undefined
         s = pli.parse_substitution("substitution(a,a)")
         self.assertEqual(len(s), 0)
@@ -81,6 +84,10 @@ class ProblogInterfaceTestCase(unittest.TestCase):
         self.assertEqual(len(s), 2)
         self.assertEqual(s.vout, 'a')
         self.assertEqual(set(s.vin), set(['b', 'd']))
+        s = pli.parse_substitution("substitution(a, [function(a,rstep,[t, a_last, t(a_last)]), t, a_last, t(a_last)] )")
+        self.assertEqual(len(s), 1)
+        self.assertEqual(s.vout, 'a')
+        self.assertEqual(set(s.vin), set(['t', 'a_last', 't(a_last)']))
 
 
 if __name__ == '__main__':

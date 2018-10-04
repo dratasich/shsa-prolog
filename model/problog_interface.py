@@ -59,39 +59,33 @@ class ProblogInterface(object):
         try:
             # BNF
             # name should at least match 'function' or 'substitution'
-            fct_name = pp.Word(pp.alphas + "_").setResultsName('function')
             fct_open = pp.Literal("(").suppress()
             fct_close = pp.Literal(")").suppress()
             list_open = pp.Literal("[").suppress()
             list_close = pp.Literal("]").suppress()
             delimiter = pp.Literal(",").suppress()
             # parameters
-            identifier = pp.Word(pp.alphanums + "_").setResultsName('identifier').setName('identifier')
-            alist = pp.Group(list_open + identifier + (delimiter + identifier)*(0,5) + list_close).setResultsName('list')
-            parameter = identifier ^ alist
-            parameters = pp.Group(parameter + pp.ZeroOrMore(delimiter + parameter)).setResultsName('parameters')
-            # function (general)
-            function = fct_name + fct_open + parameters + fct_close
+            identifier = pp.Word(pp.alphanums + "_")
+            timestamp = pp.Combine(pp.Literal("t(") + identifier + pp.Literal(")"))
+            name = timestamp | identifier
+            vlist = pp.Group(list_open + name + pp.ZeroOrMore(delimiter + name) + list_close)
             # shsa 'function': function(vout, relation, [vin1, ..])
-            vout = identifier.copy().setResultsName('output')
-            relation = identifier.copy().setResultsName('relation')
-            vin = alist.copy().setResultsName('inputs')
             pl_function = pp.Group(pp.Literal("function").suppress() + fct_open \
-                            + vout + delimiter \
-                            + relation + delimiter \
-                            + vin + fct_close).setResultsName('function')
-            self.__function_parser = pl_function
+                            + name('output') + delimiter \
+                            + name('relation') + delimiter \
+                            + vlist('inputs') + fct_close)
+            self.__function_parser = pl_function('function')
             # shsa 'substitution': substitution(vout,vout) or substitution(vout,[function, inputs])
             # while each input can be substituted by a function again
             substitution = pp.Forward()  # placeholder (substitution used recursively)
             substitution << (
-                identifier | \
-                pp.Group(list_open + pl_function \
+                name | \
+                pp.Group(list_open + pl_function('function') \
                 + pp.OneOrMore(delimiter + substitution).setResultsName('other_substitutions') \
                 + list_close).setResultsName('substitution_by_function') \
             )
             pl_substitution = pp.Literal("substitution").suppress() + fct_open \
-                                + vout + delimiter \
+                                + name('vout') + delimiter \
                                 + substitution.setResultsName('substitution') + fct_close
             self.__substitution_parser = pl_substitution
         except Exception as e:
