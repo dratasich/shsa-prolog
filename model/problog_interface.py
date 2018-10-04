@@ -66,37 +66,57 @@ class ProblogInterface(object):
             list_close = pp.Literal("]").suppress()
             delimiter = pp.Literal(",").suppress()
             # parameters
-            identifier = pp.Word(pp.alphanums + "_").setResultsName('identifier')
+            identifier = pp.Word(pp.alphanums + "_").setResultsName('identifier').setName('identifier')
             alist = pp.Group(list_open + identifier + (delimiter + identifier)*(0,5) + list_close).setResultsName('list')
             parameter = identifier ^ alist
-            parameters = pp.Group(parameter + (delimiter + parameter)*(0,5)).setResultsName('parameters')
+            parameters = pp.Group(parameter + pp.ZeroOrMore(delimiter + parameter)).setResultsName('parameters')
             # function (general)
             function = fct_name + fct_open + parameters + fct_close
             # shsa 'function': function(vout, relation, [vin1, ..])
             vout = identifier.copy().setResultsName('output')
             relation = identifier.copy().setResultsName('relation')
             vin = alist.copy().setResultsName('inputs')
-            shsa_function = pp.Literal("function").suppress() + fct_open \
+            pl_function = pp.Group(pp.Literal("function").suppress() + fct_open \
                             + vout + delimiter \
                             + relation + delimiter \
-                            + vin + fct_close
-            self.__function_parser = shsa_function
+                            + vin + fct_close).setResultsName('function')
+            self.__function_parser = pl_function
+            # shsa 'substitution': substitution(vout,vout) or substitution(vout,[function, inputs])
+            # while each input can be substituted by a function again
+            substitution = pp.Forward()  # placeholder (substitution used recursively)
+            substitution << (
+                identifier | \
+                pp.Group(list_open + pl_function \
+                + pp.OneOrMore(delimiter + substitution).setResultsName('other_substitutions') \
+                + list_close).setResultsName('substitution_by_function') \
+            )
+            pl_substitution = pp.Literal("substitution").suppress() + fct_open \
+                                + vout + delimiter \
+                                + substitution.setResultsName('substitution') + fct_close
+            self.__substitution_parser = pl_substitution
         except Exception as e:
             raise RuntimeError("error parsing")
 
     def parse_function(self, term):
-        """Creates a function object from a function string.
+        """Parses a function string.
 
         term -- string with the format: function(vout, relation, [vin1, ..])
 
         """
         try:
             result = self.__function_parser.parseString(term)
-            vout = result['output']
-            relation = result['relation']
-            vin = result['inputs']
         except Exception as e:
             raise RuntimeError("Failed to parse '{}'. {}".format(term, e))
+        return self.__get_function_of(result['function'])
+
+    def __get_function_of(self, expr_result):
+        """Creates a function object given the parsers result."""
+        try:
+            vout = expr_result['output']
+            relation = expr_result['relation']
+            vin = expr_result['inputs']
+        except Exception as e:
+            raise RuntimeError("Failed to create function from {}. {}".format(expr_result, e))
         code = self.__get_code_of(relation)
         return Function(vout, vin, code, name=relation)
 
@@ -122,4 +142,41 @@ class ProblogInterface(object):
         term -- string with the format: substitution(vout,[function..])
 
         """
-        pass
+        try:
+            result = self.__substitution_parser.parseString(term)
+            s = self.__get_substitution_of(result['substitution'])
+        except Exception as e:
+            raise RuntimeError("Failed to parse '{}'. {}".format(term, e))
+        return s
+
+    def __get_substitution_of(self, expr_results):
+        """Recursively constructs a substitution object from parsing results.
+
+        The recursion stops when no more function can be detected. In this case
+        an empty substitution is returned (no functions). In case of a
+        function, this method is called again (recursively) processing the
+        inputs of the function first. When it returns the function is
+        added. This depth-first approach ensures functions are in the right
+        order to be executed. The last function calculates vout of this
+        substitution.
+
+        """
+        substitution = Substitution()
+        # stop condition
+        try:
+            function = expr_results['function']
+            vin_substitutions = expr_results['other_substitutions']
+        except Exception as e:
+            # no more function to add (it is an identifier only)
+            # so return the substitution as it is
+            return substitution
+        # recursion
+        try:
+            # first add the substitutions of the inputs
+            for s in vin_substitutions:
+                substitution.extend(self.__get_substitution_of(s))
+            # finally add the function
+            substitution.append(self.__get_function_of(function))
+        except Exception as e:
+            raise e
+        return substitution

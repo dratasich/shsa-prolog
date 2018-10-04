@@ -66,7 +66,21 @@ class ProblogInterfaceTestCase(unittest.TestCase):
             pli.parse_function("function(a, r1, [b, c], invalid)")
 
     def test_parse_substitution(self):
-        pass
+        pli = ProblogInterface()
+        pli.append('implementation(r1,"a = b + c").')
+        pli.append('implementation(r2,"c = 2 * d").')
+        # empty substitution, vout is undefined
+        s = pli.parse_substitution("substitution(a,a)")
+        self.assertEqual(len(s), 0)
+        self.assertEqual(set(s.vin), set())
+        s = pli.parse_substitution("substitution(a, [function(a,r1,[b,c]), b, c] )")
+        self.assertEqual(len(s), 1)
+        self.assertEqual(s.vout, 'a')
+        self.assertEqual(set(s.vin), set(['b', 'c']))
+        s = pli.parse_substitution("substitution(a, [function(a,r1,[b,c]), b, [function(c,r2,[d]),d]] )")
+        self.assertEqual(len(s), 2)
+        self.assertEqual(s.vout, 'a')
+        self.assertEqual(set(s.vin), set(['b', 'd']))
 
 
 if __name__ == '__main__':
