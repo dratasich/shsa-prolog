@@ -27,39 +27,22 @@ class Substitution(UserList):
 
     def __init__(self, *args, **kwargs):
         """Initializes a substitution."""
-        # defaults
-        self.__vout = None
-        """Variable to substitute."""
-        # extract substitution related arguments
-        if 'vout' in kwargs.keys():
-            self.__vout = kwargs['vout']
-            del kwargs['vout']
         # initialize list
         super(Substitution, self).__init__(*args, **kwargs)
-        # depending on the list of functions: vout and vin can be derived
-        self.__update()
 
     @property
     def vout(self):
         """Returns the output of the last function in the list of substitutions."""
-        return self.__vout
+        if len(self) == 0:
+            return None
+        return self[-1].vout
 
     @property
     def vin(self):
         """Returns the input variables needed to apply this substitutions."""
-        return list(self.__vin)
-
-    def __add__(self, item):
-        super(Substitution, self).__add__(item)
-        self.__update()
-
-    def __update(self):
-        """Updates the private variables, that are only helpers avoiding re-computation
-        when retrieved."""
         if len(self) == 0:
-            return
-        self.__vout = self[-1].vout
-        self.__collect_input_variables(self)
+            return set()
+        return self.__collect_input_variables()
 
     def __collect_input_variables(self):
         """Returns the set of input variables.
@@ -77,7 +60,7 @@ class Substitution(UserList):
 
     def execute(self, itoms):
         # verify inputs
-        if not self.__vin.issubset(set(itoms.keys())):
+        if not self.vin.issubset(set(itoms.keys())):
             raise RuntimeError("Missing itoms to execute the substitution.")
         # execute function after function
         for f in self:
