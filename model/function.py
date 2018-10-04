@@ -25,19 +25,19 @@ class Function(object):
         """Name of the function."""
 
     @property
-    def input_variables(self):
+    def vin(self):
         return self.__vin
 
-    @input_variables.setter
-    def input_variables(self, vin):
+    @vin.setter
+    def vin(self, vin):
         self.__vin = vin
 
     @property
-    def output_variable(self):
+    def vout(self):
         return self.__vout
 
-    @output_variable.setter
-    def output_variable(self, vout):
+    @vout.setter
+    def vout(self, vout):
         self.__vout = vout
 
     @property

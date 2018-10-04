@@ -16,16 +16,19 @@ class SubstitutionTestCase(unittest.TestCase):
         self.__f_mult = None
 
     def test_init(self):
-        s = Substitution('a', [self.__f_add])
-        self.assertEqual(set(s.input_variables), set(['b', 'c']))
-        s = Substitution('a', [self.__f_add, self.__f_mult])
-        self.assertEqual(set(s.input_variables), set(['b', 'c']))
+        s = Substitution([self.__f_add], vout='a')
+        self.assertEqual(s.vout, 'a')
+        self.assertEqual(set(s.vin), set(['b', 'c']))
+        # nested and vout not explicitly given
+        s = Substitution([self.__f_add, self.__f_mult])
+        self.assertEqual(s.vout, 'a')
+        self.assertEqual(set(s.vin), set(['b', 'c']))
         # bad order, need also 'a' as input
-        s = Substitution('a', [self.__f_mult, self.__f_add])
-        self.assertEqual(set(s.input_variables), set(['a', 'b', 'c']))
+        s = Substitution([self.__f_mult, self.__f_add], vout='a')
+        self.assertEqual(set(s.vin), set(['a', 'b', 'c']))
 
     def test_execute(self):
-        s = Substitution('a', [self.__f_add, self.__f_mult])
+        s = Substitution([self.__f_add, self.__f_mult], vout='a')
         res = s.execute({'b': 1, 'c': 2})
         self.assertEqual(res['d'], 6)
 

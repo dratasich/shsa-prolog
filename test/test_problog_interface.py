@@ -45,8 +45,8 @@ class ProblogInterfaceTestCase(unittest.TestCase):
         pli.parse_function("function( a , r1 , [ b , c ] )")
         # test initialization of function
         f = pli.parse_function("function( a , r1 , [b,c])")
-        self.assertEqual(f.output_variable, 'a')
-        self.assertEqual(set(f.input_variables), set(['b', 'c']))
+        self.assertEqual(f.vout, 'a')
+        self.assertEqual(set(f.vin), set(['b', 'c']))
         self.assertEqual(f.name, 'r1')
         self.assertEqual(f.code, "a = b + c")
         result = f.execute({'b': -1, 'c': 2})

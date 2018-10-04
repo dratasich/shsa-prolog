@@ -10,11 +10,12 @@ package. The differences are:
 """
 
 import re
+from collections import UserList
 
 from model.function import Function
 
 
-class Substitution(object):
+class Substitution(UserList):
     """Substitution class.
 
     A substitution is a list of functions. The list represents a procedural
@@ -24,24 +25,41 @@ class Substitution(object):
 
     """
 
-    def __init__(self, root, functions):
+    def __init__(self, *args, **kwargs):
         """Initializes a substitution."""
-        self.__vout = root
+        # defaults
+        self.__vout = None
         """Variable to substitute."""
-        self.__functions = functions
-        """(Ordered) list of functions. When executed in order, the final result is the
-        variable root."""
-        self.__vin = self.__collect_input_variables()
-        """Set of input variables of the substitution."""
+        # extract substitution related arguments
+        if 'vout' in kwargs.keys():
+            self.__vout = kwargs['vout']
+            del kwargs['vout']
+        # initialize list
+        super(Substitution, self).__init__(*args, **kwargs)
+        # depending on the list of functions: vout and vin can be derived
+        self.__update()
 
     @property
-    def output_variable(self):
+    def vout(self):
+        """Returns the output of the last function in the list of substitutions."""
         return self.__vout
 
     @property
-    def input_variables(self):
+    def vin(self):
         """Returns the input variables needed to apply this substitutions."""
         return list(self.__vin)
+
+    def __add__(self, item):
+        super(Substitution, self).__add__(item)
+        self.__update()
+
+    def __update(self):
+        """Updates the private variables, that are only helpers avoiding re-computation
+        when retrieved."""
+        if len(self) == 0:
+            return
+        self.__vout = self[-1].vout
+        self.__collect_input_variables(self)
 
     def __collect_input_variables(self):
         """Returns the set of input variables.
@@ -52,24 +70,24 @@ class Substitution(object):
         """
         vin = set()
         vout = set()
-        for f in self.__functions:
-            vin.update(set(f.input_variables) - vout)
-            vout.add(f.output_variable)
+        for f in self:
+            vin.update(set(f.vin) - vout)
+            vout.add(f.vout)
         return vin
 
     def execute(self, itoms):
         # verify inputs
         if not self.__vin.issubset(set(itoms.keys())):
             raise RuntimeError("Missing itoms to execute the substitution.")
-        # generate code: concat all functions
-        for f in self.__functions:
+        # execute function after function
+        for f in self:
             itoms = f.execute(itoms)
         return itoms
 
     def __str__(self):
-        strfcts = [f.output_variable + "=" \
-                   + str(f) + "(" + ",".join(f.input_variables) + ");"
-                   for f in self.__functions]
+        strfcts = [f.vout + "=" \
+                   + str(f) + "(" + ",".join(f.vin) + ");"
+                   for f in self]
         return "\n".join(strfcts)
 
     def __hash__(self):

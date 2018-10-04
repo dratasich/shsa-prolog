@@ -8,8 +8,8 @@ class FunctionTestCase(unittest.TestCase):
 
     def test_init(self):
         f = Function('a', ['b', 'c'], "a = b + c", name="add")
-        self.assertEqual(set(f.input_variables), set(['b', 'c']))
-        self.assertEqual(set(f.output_variable), set(['a']))
+        self.assertEqual(set(f.vin), set(['b', 'c']))
+        self.assertEqual(set(f.vout), set(['a']))
         self.assertEqual(f.name, "add")
         with self.assertRaises(Exception):
             f = Function('a', ['a'], "a = 2 * a", name="double")
