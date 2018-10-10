@@ -33,8 +33,16 @@ edge(R,O) :- function(O,R,_).
 edge(V,R) :- function(_,R,I), member(V,I).
 
 % itom .. information atom of a variable
-% itoms may be available, i.e., itom(name)=true, or not
-itom(I) :- itomsOf(_,IL), member(I,IL).
+% itoms are set available by
+% - itomOf(variable,itom) or
+% - itomsOf(variable,[itom1, itom2, ..])
+itomOf(V,I) :- itomsOf(V,IL), member(I,IL).
+
+% mapping itom to variable
+variableOf(I,V) :- itomOf(V,I).
+
+% identify itoms or represent availability, i.e., itom(name)=true, or not
+itom(I) :- itomOf(_,I).
 
 % TODO: define value and time of an itom
 
@@ -43,7 +51,7 @@ itom(I) :- itomsOf(_,IL), member(I,IL).
 
 % the associated variable to an itom is provided (by the existing itom)
 % a variable can also be provided by a substitution
-providedByItom(V,I) :- itomsOf(V,IL), member(I,IL).
+providedByItom(V,I) :- itomOf(V,I).
 provided(V) :- providedByItom(V,_).
 provided(V) :- function(V,_,IL), allProvided(IL).
 
