@@ -88,6 +88,11 @@ class ProblogInterface(object):
                                 + name('vout') + delimiter \
                                 + substitution.setResultsName('substitution') + fct_close
             self.__substitution_parser = pl_substitution
+            # itom to variable mapping
+            pl_variableOf = pp.Literal("variableOf").suppress() + fct_open \
+                            + name('itom') + delimiter \
+                            + name('variable') + fct_close
+            self.__variableOf_parser = pl_variableOf
         except Exception as e:
             raise RuntimeError("error parsing")
 
@@ -174,3 +179,16 @@ class ProblogInterface(object):
         except Exception as e:
             raise e
         return substitution
+
+    def parse_variableOf(self, term):
+        """Parses the output of a query 'variableOf(itom,Variable).' and returns the variable.
+
+        term -- string with the format: variableOf(itom,variable)
+
+        """
+        try:
+            result = self.__variableOf_parser.parseString(term)
+            variable = result['variable']
+        except Exception as e:
+            raise RuntimeError("Failed to parse '{}'. {}".format(term, e))
+        return variable

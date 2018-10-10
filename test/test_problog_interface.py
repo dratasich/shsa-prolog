@@ -89,6 +89,11 @@ class ProblogInterfaceTestCase(unittest.TestCase):
         self.assertEqual(s.vout, 'a')
         self.assertEqual(set(s.vin), set(['t', 'a_last', 't(a_last)']))
 
+    def test_parse_variableOf(self):
+        pli = ProblogInterface()
+        v = pli.parse_variableOf("variableOf(a1,a)")
+        self.assertEqual(v, 'a')
+
 
 if __name__ == '__main__':
         unittest.main()
