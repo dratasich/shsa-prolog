@@ -85,4 +85,4 @@ class Substitution(UserList):
         return strinputs + "\n" + "\n".join(strfcts)
 
     def __hash__(self):
-        return hash(self.__functions)
+        return hash(self.__str__())

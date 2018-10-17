@@ -11,7 +11,7 @@ import textwrap
 class Function(object):
     """Function class."""
 
-    def __init__(self, vout, vin, code, name="fct"):
+    def __init__(self, vout, vin, code, name="fct", wrap=True):
         if len(set(vin) & set([vout])) > 0:
             raise RuntimeError("Not supported: output variable is also an input.")
         self.__vin = vin
@@ -23,6 +23,9 @@ class Function(object):
         output variable."""
         self.__name = name
         """Name of the function."""
+        self.__wrap = wrap
+        """Indicates if the code shall be wrapped into a function (will be
+        called as specified in 'name')."""
 
     @property
     def vin(self):
@@ -42,7 +45,7 @@ class Function(object):
 
     @property
     def code(self):
-        return self.__code
+        return self.__enclosed_code()
 
     @property
     def name(self):
@@ -60,12 +63,16 @@ class Function(object):
         # enclose the code with a function such that the code (includes
         # variables, possibly functions) is local in the defined function
         # `execute` (otherwise we would have to call `global fct`)
-        params = ",".join(self.__vin)
-        code = "def " + self.__name + "(" + params + "):\n"
-        # code += textwrap.indent(u_code, "    ")
-        code += textwrap.indent(self.__code, "    ")
-        code += "\n    return " + self.__vout
-        code += "\n\n" + self.__vout + " = " + self.__name + "(" + params + ")"
+        code = ""
+        if self.__wrap:
+            params = ",".join(self.__vin)
+            code += "def " + self.__name + "(" + params + "):\n"
+            # code += textwrap.indent(u_code, "    ")
+            code += textwrap.indent(self.__code, "    ")
+            code += "\n    return " + self.__vout
+            code += "\n\n" + self.__vout + " = " + self.__name + "(" + params + ")"
+        else:
+            code += self.__code
         return code
 
     def execute(self, itoms):

@@ -50,7 +50,7 @@ class ProblogInterfaceTestCase(unittest.TestCase):
         self.assertEqual(f.vout, 'a')
         self.assertEqual(set(f.vin), set(['b', 'c']))
         self.assertEqual(f.name, 'r1')
-        self.assertEqual(f.code, "a = b + c")
+        self.assertTrue("a = b + c" in f.code)
         result = f.execute({'b': -1, 'c': 2})
         self.assertEqual(result['a'], 1)
         # no or ambiguous implementation

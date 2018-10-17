@@ -13,6 +13,10 @@ class FunctionTestCase(unittest.TestCase):
         self.assertEqual(f.name, "add")
         with self.assertRaises(Exception):
             f = Function('a', ['a'], "a = 2 * a", name="double")
+        # test wrap flag
+        self.assertTrue("def" in f.code)
+        f = Function('a', ['b', 'c'], "a = b + c", name="add", wrap=False)
+        self.assertEqual(f.code, "a = b + c")
 
     def test_execute(self):
         f = Function('a', ['b', 'c'], "a = b + c", name="add")
@@ -26,6 +30,10 @@ class FunctionTestCase(unittest.TestCase):
             f.execute({'a': 0})
         with self.assertRaises(Exception):
             f.execute({'b': 0})
+        # test execution without wrapping the code in a function
+        f = Function('a', ['b', 'c'], "a = b + c", name="add", wrap=False)
+        v = f.execute({'b': 1, 'c': 2})
+        self.assertAlmostEqual(v['a'], 3)
 
     def test_equal(self):
         f1 = Function('a', ['b', 'c'], "a = b + c", name="add")

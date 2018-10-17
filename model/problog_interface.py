@@ -171,7 +171,7 @@ class ProblogInterface(object):
             # -> it is an itom
             itom = expr_results
             code = "{} = {}".format(vout, itom)
-            f = Function(vout, [itom], code, name="equals")
+            f = Function(vout, [itom], code, name="equals", wrap=False)
             substitution.append(f)
             return substitution
         # recursion
