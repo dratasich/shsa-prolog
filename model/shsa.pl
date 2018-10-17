@@ -68,7 +68,7 @@ allProvided([H|T]) :- provided(H), allProvided(T).
 % a valid substitution of O
 substitution(O,FL) :- substitution(O,FL,[]).
 
-substitution(O,O,Visited) :- providedByItom(O,_).
+substitution(O,I,Visited) :- providedByItom(O,I).
 substitution(O,[function(O,R,IL)|FLinputs],Visited) :-
     function(O,R,IL),
     intersection([O|IL],Visited,[]),

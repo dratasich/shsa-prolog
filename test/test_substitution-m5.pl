@@ -21,6 +21,6 @@ itomsOf(d,[d1,d2]).
 
 %% % substitution
 query(substitution(a,X)).
-query(substitution(a,a)).
-query(substitution(a,[function(a,r1,[b, c]), b, c])).
-query(substitution(a,[function(a,r2,[c, d]), c, d])).
+query(substitution(a,a1)).
+query(substitution(a,[function(a,r1,[b, c]), b1, c1])).
+query(substitution(a,[function(a,r2,[c, d]), c1, d2])).

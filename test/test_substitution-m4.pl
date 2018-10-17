@@ -26,5 +26,5 @@ itomsOf(j,[j1]).
 
 %% % substitution
 query(substitution(a,X)).
-query(substitution(a,[function(a,r1,[b, c]), [function(b,r2,[d, e]), d, e], c])).
-query(substitution(a,[function(a,r1,[b, c]), [function(b,r2,[d, e]), d, e], [function(c,r4,[f]), [function(f,r5,[g]), g]]])).
+query(substitution(a,[function(a,r1,[b, c]), [function(b,r2,[d, e]), d1, e1], c1])).
+query(substitution(a,[function(a,r1,[b, c]), [function(b,r2,[d, e]), d2, e1], [function(c,r4,[f]), [function(f,r5,[g]), g1]]])).

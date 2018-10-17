@@ -22,7 +22,7 @@ itomsOf(e,[e1]).
 
 %% % substitution
 query(substitution(a,X)).
-query(substitution(a,a)).
-query(substitution(a,[function(a,r1,[b, c, d]), [function(b,r2,[e]), e], c, d])).
+query(substitution(a,a1)).
+query(substitution(a,[function(a,r1,[b, c, d]), [function(b,r2,[e]), e1], c1, d2])).
 % f cannot be substituted
 query(not substitution(f,X)).

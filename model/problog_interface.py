@@ -143,12 +143,12 @@ class ProblogInterface(object):
         """
         try:
             result = self.__substitution_parser.parseString(term)
-            s = self.__get_substitution_of(result['substitution'])
+            s = self.__get_substitution_of(result['vout'], result['substitution'])
         except Exception as e:
             raise RuntimeError("Failed to parse '{}'. {}".format(term, e))
         return s
 
-    def __get_substitution_of(self, expr_results):
+    def __get_substitution_of(self, vout, expr_results):
         """Recursively constructs a substitution object from parsing results.
 
         The recursion stops when no more function can be detected. In this case
@@ -163,19 +163,25 @@ class ProblogInterface(object):
         substitution = Substitution()
         # stop condition
         try:
-            function = expr_results['function']
+            function = self.__get_function_of(expr_results['function'])
             vin_substitutions = expr_results['other_substitutions']
+            assert len(function.vin) == len(vin_substitutions)
         except Exception as e:
-            # no more function to add (it is an identifier only)
-            # so return the substitution as it is
+            # expr_result does not contain a 'function' (any more)
+            # -> it is an itom
+            itom = expr_results
+            code = "{} = {}".format(vout, itom)
+            f = Function(vout, [itom], code, name="equals")
+            substitution.append(f)
             return substitution
         # recursion
         try:
             # first add the substitutions of the inputs
-            for s in vin_substitutions:
-                substitution.extend(self.__get_substitution_of(s))
+            for i, s in enumerate(vin_substitutions):
+                substitution.extend(self.__get_substitution_of(function.vin[i], s))
             # finally add the function
-            substitution.append(self.__get_function_of(function))
+            substitution.append(function)
+            assert substitution.vout == vout
         except Exception as e:
             raise e
         return substitution

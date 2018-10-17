@@ -32,7 +32,7 @@ class Substitution(UserList):
 
     @property
     def vout(self):
-        """Returns the output of the last function in the list of substitutions."""
+        """Returns the output variable of the last function."""
         if len(self) == 0:
             return None
         return self[-1].vout
@@ -59,6 +59,16 @@ class Substitution(UserList):
         return vin
 
     def execute(self, itoms):
+        """Execute the substitution and returns all variables.
+
+        itoms -- dictionary of itom:value.
+
+        Passes itoms through the functions. Output variables of functions may
+        be appended. However, the last variable assigned is 'this.vout' which
+        is the result of the substitution given the inputs 'itoms'. The value
+        of 'this.vout' can be retrieved from the returned variables.
+
+        """
         # verify inputs
         if not self.vin.issubset(set(itoms.keys())):
             raise RuntimeError("Missing itoms to execute the substitution.")
@@ -68,10 +78,11 @@ class Substitution(UserList):
         return itoms
 
     def __str__(self):
+        strinputs = "inputs({});".format(self.vin)
         strfcts = [f.vout + "=" \
                    + str(f) + "(" + ",".join(f.vin) + ");"
                    for f in self]
-        return "\n".join(strfcts)
+        return strinputs + "\n" + "\n".join(strfcts)
 
     def __hash__(self):
         return hash(self.__functions)
