@@ -1,2 +1,2 @@
-t:t, x:x, x_last:x_last, y:y, y_last:y_last, v:v, v_last:v_last, w:w_gyro, w:w_enc, ax:ax, ay:ay, v:uv, w:uw
-0,0,0,0,0,0,0,0
+t:t_clock, x:x_amcl, x_last:x_amcl_last, y:y_amcl, y_last:y_amcl_last, v:v_enc, v_last:v_enc_last, w:w_gyro, w:w_enc, ax:ax_acc, ay:ay_acc, v:v_ctrl, w:w_ctrl
+0,0,0,0,0,0,0,0,0,0,0,0,0

@@ -7,8 +7,10 @@ __author__ = Denise Ratasich
 """
 
 import argparse
+import pandas as pd
 
 from model.problog_interface import ProblogInterface
+from model.itom import Itom, Itoms
 
 
 #
@@ -37,27 +39,33 @@ pli.load(args.model)
 # get the available itoms
 #
 
-# split header of csv by ',' to get 'variable:itom'
-availability = {}
 try:
-    with open(args.csv, 'r') as f:
-        header = f.readline().strip()
-        header = header.split(',')
-        for head in header:
-            head = head.strip().split(':')
-            v = head[0]
-            i = head[1]
-            if v not in availability.keys():
-                availability[v] = []
-            availability[v].append(i)
+    data = pd.read_csv(args.csv)
 except Exception as e:
-    raise SystemExit("Failed to parse CSV-header. Header shall be a list of 'variable:itom'. ")
+    raise SystemExit("Failed to parse csv. {}".format(e))
 
+# get variable/itoms available from column name (header) 'variable:itom'
+itoms = Itoms()
+try:
+    for head in data.columns.values:
+        head = head.strip().split(':')
+        v = head[0]
+        i = head[1]
+        # empty value and timestamp for this itom describing the header only
+        itom = Itom(i, None, variable=v, timestamp=None)
+        itoms[itom.name] = itom
+except Exception as e:
+    raise SystemExit("Failed to parse column name 'variable:itom'. {}".format(e))
+
+# problog knows the mapping now, so we can change the column names to itoms only
+# substiution only needs itom names
+data.columns = itoms.keys()
 
 # append available itoms to program with "itomsOf(variable,[itom1,..])"
 program = "\n"
-for variable, itoms in availability.items():
-    program += "itomsOf({},[{}]).\n".format(variable, ','.join(itoms))
+for variable, il in itoms.availability.items():
+    names = [itom.name for itom in il]
+    program += "itomsOf({},[{}]).\n".format(variable, ','.join(names))
 
 pli.append(program)
 print("Program:\n{}".format(pli.program))
@@ -67,13 +75,39 @@ print("Program:\n{}".format(pli.program))
 # monitor with Prolog model
 #
 
+# variable to monitor
+variable = 'x'
+
 # get all valid substitutions for v
-result = pli.evaluate("query(substitution(v,S)).")
+result = pli.evaluate("query(substitution({},S)).".format(variable))
 S = []
 for r in result.keys():
-    print(r)
-    # S.append(pli.parse_substitution(str(r)))
-print(S)
+    s = pli.parse_substitution(str(r))
+    S.append(s)
 
-# TODO: execute python functions to get values in common domain
+# execute python functions to get values in common domain
+def bring_to_common_domain(S, itoms):
+    values = {}
+    for i, s in enumerate(S):
+        print("\nSubstitution {}".format(i))
+        print(s)
+        try:
+            result = s.execute(itoms)
+            values[s] = result[variable]
+        except Exception as e:
+            print("Execution failed - value ignored. {}".format(e))
+            raise e
+    return values
+
 # TODO: agreement on values (Python or Prolog program)
+for index, row in data.iterrows():
+    timestamp = row['t_clock']
+    # set values in the row to itoms
+    il = list(itoms.values())
+    assert len(il) == len(row)
+    for i, value in enumerate(row):
+        il[i].v = value
+        il[i].t = timestamp
+    values = bring_to_common_domain(S, il)
+    print([itom.v for itom in values.values()])
+    raise SystemExit("Stop.")

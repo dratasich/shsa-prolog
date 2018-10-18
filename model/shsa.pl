@@ -32,6 +32,10 @@ relation(R) :- function(_,R,_).
 edge(R,O) :- function(O,R,_).
 edge(V,R) :- function(_,R,I), member(V,I).
 
+% define implementation of a relation in your model
+% the python implementation allows to have a value (.v) and a timestamp (.t)
+% - implementation(r1, "b.v = 2*a.v")
+
 % itom .. information atom of a variable
 % itoms are set available by
 % - itomOf(variable,itom) or
@@ -43,8 +47,6 @@ variableOf(I,V) :- itomOf(V,I).
 
 % identify itoms or represent availability, i.e., itom(name)=true, or not
 itom(I) :- itomOf(_,I).
-
-% TODO: define value and time of an itom
 
 % Note, we do not check if V is a variable, or R is a relation (the interpreter
 % would need to search a corresponding function which makes the check slow)!
