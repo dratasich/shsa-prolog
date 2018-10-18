@@ -10,12 +10,12 @@ package. The differences are:
 """
 
 import re
-from collections import UserList
 
 from model.function import Function
+from model.itom import Itoms
 
 
-class Substitution(UserList):
+class Substitution(list):
     """Substitution class.
 
     A substitution is a list of functions. The list represents a procedural
@@ -61,14 +61,18 @@ class Substitution(UserList):
     def execute(self, itoms):
         """Execute the substitution and returns all variables.
 
-        itoms -- dictionary of itom:value.
+        itoms -- dictionary of itom-name->'Itom'-object. These will be passed
+          as local variables to the functions.
 
         Passes itoms through the functions. Output variables of functions may
-        be appended. However, the last variable assigned is 'this.vout' which
-        is the result of the substitution given the inputs 'itoms'. The value
-        of 'this.vout' can be retrieved from the returned variables.
+        be appended (variable-name->'Itom'-object). However, the last variable
+        assigned is 'this.vout' which is the result of the substitution given
+        the inputs 'itoms'. The value (and possibly a timestamp) of 'this.vout'
+        can be retrieved from the returned variables ('this.vout.v').
 
         """
+        # make sure its an Itoms-object
+        itoms = Itoms(itoms)
         # verify inputs
         if not self.vin.issubset(set(itoms.keys())):
             raise RuntimeError("Missing itoms to execute the substitution.")

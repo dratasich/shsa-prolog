@@ -6,6 +6,7 @@ __author__ = Denise Ratasich
 """
 
 import textwrap
+from model.itom import Itom, Itoms
 
 
 class Function(object):
@@ -64,23 +65,29 @@ class Function(object):
         # variables, possibly functions) is local in the defined function
         # `execute` (otherwise we would have to call `global fct`)
         code = ""
+        code_init_vout_itom = "{} = Itom('{}',{},variable='{}')\n".format(
+            self.__vout, self.__vout, None, self.__vout)
         if self.__wrap:
             params = ",".join(self.__vin)
-            code += "def " + self.__name + "(" + params + "):\n"
+            code += "def {}({}):\n".format(self.__name, params)
             # code += textwrap.indent(u_code, "    ")
+            code += textwrap.indent(code_init_vout_itom, "    ")
             code += textwrap.indent(self.__code, "    ")
-            code += "\n    return " + self.__vout
-            code += "\n\n" + self.__vout + " = " + self.__name + "(" + params + ")"
+            code += "\n    return {}".format(self.__vout)
+            code += "\n\n{} = {}({})".format(self.__vout, self.__name, params)
         else:
+            code += code_init_vout_itom
             code += self.__code
         return code
 
     def execute(self, itoms):
-        """Executes the function given the value per input variable.
+        """Executes the function given the itoms.
 
-        itoms -- Dictionary of variable->value.
+        itoms -- 'Itoms' object, list or dictionary of itoms
 
         """
+        # make sure its an Itoms-object
+        itoms = Itoms(itoms)
         # verify inputs
         if not set(self.__vin).issubset(set(itoms.keys())):
             raise RuntimeError("Missing itoms to execute the function.")
@@ -88,7 +95,7 @@ class Function(object):
         code = self.__enclosed_code()
         # execute code
         local_vars = itoms
-        exec(code, None, local_vars)
+        exec(code, {'Itom': Itom}, local_vars)
         return local_vars
 
     def __str__(self):

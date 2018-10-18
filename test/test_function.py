@@ -1,6 +1,7 @@
 import unittest
 
 from model.function import Function
+from model.itom import Itom, Itoms
 
 
 class FunctionTestCase(unittest.TestCase):
@@ -16,24 +17,31 @@ class FunctionTestCase(unittest.TestCase):
         # test wrap flag
         self.assertTrue("def" in f.code)
         f = Function('a', ['b', 'c'], "a = b + c", name="add", wrap=False)
-        self.assertEqual(f.code, "a = b + c")
+        self.assertFalse("def" in f.code)
 
     def test_execute(self):
-        f = Function('a', ['b', 'c'], "a = b + c", name="add")
-        v = f.execute({'b': 1, 'c': 2})
-        self.assertAlmostEqual(v['a'], 3)
-        v = f.execute({'b': 4, 'c': 2})
-        self.assertAlmostEqual(v['a'], 6)
-        v = f.execute({'a': 0, 'b': 5, 'c': 5})
-        self.assertAlmostEqual(v['a'], 10)
+        f = Function('a', ['b', 'c'], "a.v = b.v + c.v", name="add")
+        a = Itom('a', 0)
+        b = Itom('b', 1)
+        c = Itom('c', 2)
+        itoms = Itoms([a, b, c])
+        v = f.execute(itoms)
+        self.assertAlmostEqual(v['a'].v, 3)
+        b.v = 4; c.v = 2
+        v = f.execute(itoms)
+        self.assertAlmostEqual(v['a'].v, 6)
+        a.v = 0; b.v = 5; c.v = 5
+        v = f.execute(itoms)
+        self.assertAlmostEqual(v['a'].v, 10)
         with self.assertRaises(Exception):
-            f.execute({'a': 0})
+            f.execute({a.name: a})
         with self.assertRaises(Exception):
-            f.execute({'b': 0})
+            f.execute({b.name: b})
         # test execution without wrapping the code in a function
-        f = Function('a', ['b', 'c'], "a = b + c", name="add", wrap=False)
-        v = f.execute({'b': 1, 'c': 2})
-        self.assertAlmostEqual(v['a'], 3)
+        f = Function('a', ['b', 'c'], "a.v = b.v + c.v", name="add", wrap=False)
+        b.v = 1; c.v = 2
+        v = f.execute(itoms)
+        self.assertAlmostEqual(v['a'].v, 3)
 
     def test_equal(self):
         f1 = Function('a', ['b', 'c'], "a = b + c", name="add")

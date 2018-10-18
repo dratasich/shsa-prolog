@@ -2,14 +2,16 @@ import unittest
 
 from model.function import Function
 from model.substitution import Substitution
+from model.itom import Itom, Itoms
 
 
 class SubstitutionTestCase(unittest.TestCase):
     """Test cases for class `Substitution`."""
 
     def setUp(self):
-        self.__f_add = Function('a', ['b', 'c'], "a = b + c", name="add")
-        self.__f_mult = Function('d', ['a'], "d = 2 * a", name="mult")
+        self.__f_add = Function('a', ['b', 'c'], "a.v = b.v + c.v", name="add")
+        self.__f_mult = Function('d', ['a'], "d.v = 2 * a.v", name="mult")
+        self.__f_add2 = Function('a', ['b', 'c'], "a.v = b.v + c.v", name="add")
 
     def tearDown(self):
         self.__f_add = None
@@ -30,8 +32,15 @@ class SubstitutionTestCase(unittest.TestCase):
 
     def test_execute(self):
         s = Substitution([self.__f_add, self.__f_mult])
-        variables = s.execute({'b': 1, 'c': 2})
-        self.assertEqual(variables['d'], 6)
+        b = Itom('b', 1)
+        c = Itom('c', 2)
+        itoms = Itoms(list=[b, c])
+        variables = s.execute(itoms)
+        self.assertEqual(variables['d'].v, 6)
+        # function names not unique
+        s = Substitution([self.__f_add, self.__f_add2])
+        variables = s.execute([b, c])
+        self.assertEqual(variables['a'].v, 3)
 
 
 if __name__ == '__main__':
