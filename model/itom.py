@@ -5,7 +5,7 @@ __author__ = Denise Ratasich
 
 """
 
-from collections import UserList
+from collections import OrderedDict
 
 
 class Itom(object):
@@ -69,7 +69,7 @@ class Itom(object):
         return hash((self.__name, self.__variable, self.__value, self.__timestamp))
 
 
-class Itoms(dict):
+class Itoms(OrderedDict):
     """List of itoms."""
 
     def __init__(self, *args, **kwargs):
@@ -95,3 +95,14 @@ class Itoms(dict):
         for itom in itoms_list:
             itoms_dict[itom.name] = itom
         return itoms_dict
+
+    @property
+    def availability(self):
+        """Returns a dictionary of variable->list(itoms)."""
+        availability = {}
+        for itom in self.values():
+            v = itom.variable
+            if v not in availability.keys():
+                availability[v] = []
+            availability[v].append(itom)
+        return availability
