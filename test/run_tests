@@ -2,8 +2,10 @@
 
 scriptdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
-CMD="problog -L $scriptdir/../model/"
-testfiles="$(ls "$scriptdir"/test_*.pl)"
+pl_CMD="problog -L $scriptdir/../model/"
+pl_testfiles="$(ls "$scriptdir"/test_*.pl)"
+py_CMD="python -m unittest"
+py_testfiles="$(ls "$scriptdir"/test_*.py)"
 
 # colors
 # https://gist.github.com/elucify/c7ccfee9f13b42f11f81
@@ -15,10 +17,10 @@ PASS="$GREEN[PASS ]$RESTORE"
 FAIL="$RED[FAIL ]$RESTORE"
 ERROR="$RED[ERROR]$RESTORE"
 
-execute () {
+print_result () {
     test=$1
-    result=$($CMD --timeout 3 $test)
-    status=$(echo $?)
+    status=$2
+    output=$3
     if (( $status != 0 )); then
         echo $ERROR $test
         return
@@ -31,18 +33,18 @@ execute () {
     echo $PASS $test
 }
 
-# run all prolog test files
-for test in $testfiles
+# run prolog tests
+for test in $pl_testfiles
 do
-    execute $test
+    result=$($pl_CMD --timeout 3 $test)
+    status=$(echo $?)
+    print_result $test $status $result
 done
 
 # run python tests
-python_test="python -m unittest discover"
-cd $scriptdir/..; $python_test
-status=$(echo $?)
-if (( $status == 0 )); then
-    echo $PASS $python_test
-else
-    echo $ERROR $python_test
-fi
+for test in $py_testfiles
+do
+    result=$(cd $scriptdir/..; $py_CMD $test 2> /dev/null)
+    status=$(echo $?)
+    print_result $test $status $result
+done
