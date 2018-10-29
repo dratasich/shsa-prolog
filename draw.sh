@@ -12,6 +12,7 @@ cat $input | \
     awk -F, '
 {
     # $1 .. variable
+    gsub(/ /, "", $1)
     printf "  \"%s\" [style=filled,fillcolor=lightgrey];\n",$1
     # all other fields are itoms - we dont display
 }
@@ -25,15 +26,18 @@ cat $input | \
 {
     # $1 .. output
     # $2 .. relation
-    printf "  \"%s\" [shape=box];\n",$2
+    gsub(/ /, "", $1)
+    gsub(/ /, "", $2)
+    printf "  %s [shape=box];\n",$2
     # all other fields are the list elements of the 3rd parameter
     # = inputs of the function
     for(i = 3; i <= NF; i++) {
         # input to relation
-        printf "  \"%s\"-> \"%s\";\n",$i,$2
+        gsub(/ /, "", $i)
+        printf "  %-10s -> %-10s;\n",$i,$2
     }
     # relation to output
-    printf "  \"%s\" -> \"%s\";\n",$2,$1
+    printf "  %-10s -> %-10s;\n",$2,$1
 }
 '
 
