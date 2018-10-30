@@ -20,7 +20,7 @@ Python:
 
 Debug a (failed) python testcase:
     ```bash
-    $ python3 -m pdb test/test_some-name.py
+    $ PYTHONPATH=. python3 -m pdb test/test_some-name.py
     ```
 
 Run all python testcases:
