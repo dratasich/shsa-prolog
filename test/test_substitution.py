@@ -42,6 +42,26 @@ class SubstitutionTestCase(unittest.TestCase):
         variables = s.execute([b, c])
         self.assertEqual(variables['a'].v, 3)
 
+    def test_diversity(self):
+        fa = Function('a', ['a1'], "", name="equals_a")
+        fb = Function('b', ['b1'], "", name="equals_b")
+        f1 = Function('a', ['b'], "", name="f1")
+        se = Substitution([fa])
+        s1 = Substitution([fb, f1])
+        d_s1 = s1.diversity([se])
+        d_se = se.diversity([s1])
+        self.assertEqual(d_s1, d_se)
+        self.assertEqual(d_s1, 1)
+        fc = Function('c', ['c1'], "", name="equals_c")
+        f2 = Function('a', ['b', 'c'], "", name="f2")
+        s2 = Substitution([fc, fb, f2])
+        d = se.diversity([s1, s2])
+        self.assertEqual(d, 2)
+        d = s1.diversity([s2])
+        self.assertEqual(d, 0)
+        d = s2.diversity([s1])
+        self.assertEqual(d, 1)
+
 
 if __name__ == '__main__':
         unittest.main()

@@ -90,3 +90,17 @@ class Substitution(list):
 
     def __hash__(self):
         return hash(self.__str__())
+
+    def diversity(self, other_substitutions):
+        """Provides a measure of difference in inputs to the given substitutions.
+
+        substitutions -- list of substitutions to compare to.
+
+        Count the own inputs that are not in another substitution.
+        """
+        diversity = 0
+        my_inputs = self.vin
+        for s in other_substitutions:
+            difference = my_inputs - s.vin
+            diversity = diversity + len(difference)
+        return diversity
