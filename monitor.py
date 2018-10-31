@@ -8,6 +8,7 @@ __author__ = Denise Ratasich
 
 import argparse
 import pandas as pd
+import numpy as np
 
 from model.problog_interface import ProblogInterface
 from model.itom import Itom, Itoms
@@ -58,7 +59,7 @@ except Exception as e:
     raise SystemExit("Failed to parse column name 'variable:itom'. {}".format(e))
 
 # problog knows the mapping now, so we can change the column names to itoms only
-# substiution only needs itom names
+# substitution only needs itom names
 data.columns = itoms.keys()
 
 # append available itoms to program with "itomsOf(variable,[itom1,..])"
@@ -86,28 +87,56 @@ for r in result.keys():
     S.append(s)
 
 # execute python functions to get values in common domain
+first = True
 def bring_to_common_domain(S, itoms):
-    values = {}
+    global first
+    output = Itoms()
     for i, s in enumerate(S):
-        print("\nSubstitution {}".format(i))
-        print(s)
+        if first:
+            print("\nSubstitution {}".format(i))
+            print(s)
         try:
             result = s.execute(itoms)
-            values[s] = result[variable]
+            output[s] = result[variable]
         except Exception as e:
             print("Execution failed - value ignored. {}".format(e))
             raise e
-    return values
+    first = False
+    return output
+
+def faulty(outputs):
+    """Values is an ordered dictionary of substitution->itom (Itoms with
+    key=substitution)."""
+    # values to compare
+    values = pd.Series([output.v for output in outputs.values()])
+    # squared error matrix
+    se = pd.DataFrame(np.zeros((len(values), len(values))))
+    for i, v in enumerate(values):
+        for j, w in enumerate(values):
+            se.iat[i,j] = (v - w) * (v - w)
+    # se = np.cov(values, values)
+    # all values are zero if the values match
+    if sum(se.sum(1)) > 0:
+        print(values)
+        print(se)
+        print(se.sum(1))
+        #se.sum(1).sort()
+        #print(se.sum(1).sort(0))
+        #return outputs.keys(idx)
 
 # TODO: agreement on values (Python or Prolog program)
 for index, row in data.iterrows():
     timestamp = row['t_clock']
+    print(timestamp)
     # set values in the row to itoms
     il = list(itoms.values())
     assert len(il) == len(row)
     for i, value in enumerate(row):
         il[i].v = value
         il[i].t = timestamp
+    # transform
     values = bring_to_common_domain(S, il)
-    print([itom.v for itom in values.values()])
-    raise SystemExit("Stop.")
+    # compare
+    s = faulty(values)
+    #print(s)
+    #raise SystemExit("Stop.")

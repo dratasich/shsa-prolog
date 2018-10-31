@@ -3,13 +3,36 @@
 __date__ = 2018-10-18
 __author__ = Denise Ratasich
 
+An itom (= information atom) is a tuple including data and an explanation of
+this data [Kop14]. Itoms are distributed over the common network interface via
+messages.
+
+In SHSA we refer to the data as "value" (abbreviated by v).
+Moreover, each itom provides following explanation of the data:
+- variable = associated variable or entity
+- t = timestamp of the acquisition or generation of the value.
+and properties:
+- name = identifier of the itom
+
+An itom is associated to a (single) variable of the SHSA knowledge base,
+however, a variable can be provided by several itoms (variable:itoms -- 1:*).
+
+[Kop14] H. Kopetz. Self-Healing by Property-Guided Structural Adaptation. In
+2014 IEEE 17th International Symposium on Object/Component/Service-oriented
+Real-time Distributed Computing (ISORC), pages 17--24, June 2014.
+
 """
 
 from collections import OrderedDict
 
 
 class Itom(object):
-    """Itom class."""
+    """Itom class.
+
+    Note that the timestamp is reset when you set the value.
+    Therefore, always set the value first, then the timestamp!
+
+    """
 
     def __init__(self, name, value, timestamp=None, variable=None):
         self.__name = name
@@ -21,9 +44,6 @@ class Itom(object):
 
         For instance, use the Unix epoch time:
         - https://www.unixtimestamp.com/
-
-        Note that the timestamp is reset when you set the value. Therefore,
-        always set the value first, then the timestamp.
 
         """
         self.__variable = variable
