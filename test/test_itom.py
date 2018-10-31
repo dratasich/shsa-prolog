@@ -1,6 +1,7 @@
 import unittest
 
 from model.itom import Itom, Itoms
+from interval import interval
 
 
 class ItomTestCase(unittest.TestCase):
@@ -44,6 +45,10 @@ class ItomTestCase(unittest.TestCase):
         self.assertEqual(len(av['a']), 2)
         self.assertTrue('a1' in [itom.name for itom in av['a']])
         self.assertEqual(len(av['b']), 1)
+
+    def test_interval(self):
+        a = Itom('a', interval([0.9, 1.1]))
+        self.assertTrue(1 in a.v)
 
 
 if __name__ == '__main__':

@@ -2,6 +2,7 @@ import unittest
 
 from model.function import Function
 from model.itom import Itom, Itoms
+from interval import interval
 
 
 class FunctionTestCase(unittest.TestCase):
@@ -53,6 +54,17 @@ class FunctionTestCase(unittest.TestCase):
         self.assertTrue(f1 != f4)
         f5 = Function('a', ['b', 'c', 'd'], "a = b + c")
         self.assertTrue(f1 != f5)
+
+    def test_execute_with_interval(self):
+        f = Function('a', ['b', 'c'], "a.v = b.v + c.v", name="add")
+        b = Itom('b', interval([0.5, 1.5]))
+        c = Itom('c', interval([1, 3]))
+        o = f.execute(Itoms([b, c]))
+        self.assertEqual(o['a'].v, interval([1.5, 4.5]))
+        # mix interval arithmetic with scalars
+        b = Itom('b', 1)
+        o = f.execute(Itoms([b, c]))
+        self.assertEqual(o['a'].v, interval([2, 4]))
 
 
 if __name__ == '__main__':
