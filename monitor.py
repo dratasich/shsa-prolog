@@ -9,6 +9,7 @@ __author__ = Denise Ratasich
 import argparse
 import pandas as pd
 import numpy as np
+from interval import interval
 
 from model.problog_interface import ProblogInterface
 from model.itom import Itom, Itoms
@@ -34,6 +35,17 @@ args = parser.parse_args()
 
 pli = ProblogInterface(librarypaths=["./model/"])
 pli.load(args.model)
+
+# define epsilon for itoms (static)
+epsilon = {
+    't_clock': 0,
+    'x1': 1,
+    'x2': 1,
+    'a1': 1,
+    'b1': 1,
+    'c1': 1,
+    'd1': 1,
+}
 
 
 #
@@ -107,8 +119,8 @@ def bring_to_common_domain(S, itoms):
 def faulty(outputs):
     """Values is an ordered dictionary of substitution->itom (Itoms with
     key=substitution)."""
-    # values to compare
-    values = pd.Series([output.v for output in outputs.values()])
+    # values to compare (take midpoint of interval)
+    values = pd.Series([output.v.midpoint[0][0] for output in outputs.values()])
     # squared error matrix
     se = pd.DataFrame(np.zeros((len(values), len(values))))
     for i, v in enumerate(values):
@@ -128,15 +140,17 @@ def faulty(outputs):
 for index, row in data.iterrows():
     timestamp = row['t_clock']
     print(timestamp)
-    # set values in the row to itoms
-    il = list(itoms.values())
-    assert len(il) == len(row)
-    for i, value in enumerate(row):
-        il[i].v = value
-        il[i].t = timestamp
+    # move values (as intervals) from row to itoms
+    for name in itoms.keys():
+        v = row[name]
+        e = epsilon[name]
+        itoms[name].v = interval([v - e, v + e])
+        itoms[name].t = timestamp
+    # print(itoms)
     # transform
-    values = bring_to_common_domain(S, il)
+    values = bring_to_common_domain(S, itoms)
+    # print(values)
     # compare
     s = faulty(values)
-    #print(s)
-    #raise SystemExit("Stop.")
+    # print(s)
+    # raise SystemExit("Stop.")
