@@ -92,21 +92,19 @@ print("Program:\n{}".format(pli.program))
 variable = 'x'
 
 # get all valid substitutions for v
+print("query(substitution({},S)).".format(variable))
 result = pli.evaluate("query(substitution({},S)).".format(variable))
 S = []
 for r in result.keys():
     s = pli.parse_substitution(str(r))
     S.append(s)
+    print("\n-> {}".format(r))
+    print(s)
 
 # execute python functions to get values in common domain
-first = True
 def bring_to_common_domain(S, itoms):
-    global first
     output = Itoms()
     for i, s in enumerate(S):
-        if first:
-            print("\nSubstitution {}".format(i))
-            print(s)
         try:
             result = s.execute(itoms)
             output[s] = result[variable]
@@ -119,27 +117,29 @@ def bring_to_common_domain(S, itoms):
 def faulty(outputs):
     """Values is an ordered dictionary of substitution->itom (Itoms with
     key=substitution)."""
-    # values to compare (take midpoint of interval)
-    values = pd.Series([output.v.midpoint[0][0] for output in outputs.values()])
-    # squared error matrix
-    se = pd.DataFrame(np.zeros((len(values), len(values))))
+    # intervals to compare
+    values = pd.Series([output.v for output in outputs.values()])
+    # each value is only a single interval (otherwise take the hull first)
+    for v in values:
+        assert len(v) == 1
+    # squared error matrix (non-overlap of intervals)
+    se = np.zeros((len(values), len(values)))
     for i, v in enumerate(values):
         for j, w in enumerate(values):
-            se.iat[i,j] = (v - w) * (v - w)
-    # se = np.cov(values, values)
+            # error between (1-dimensional) values
+            #se[i,j] = (v - w) * (v - w)
+            # intersect intervals
+            se[i,j] = max(0, max(v[0][0], w[0][0]) - min(v[0][1], w[0][1]))
     # all values are zero if the values match
     if sum(se.sum(1)) > 0:
         print(values)
         print(se)
         print(se.sum(1))
-        #se.sum(1).sort()
-        #print(se.sum(1).sort(0))
-        #return outputs.keys(idx)
 
-# TODO: agreement on values (Python or Prolog program)
+print("\n\nMonitor ...")
 for index, row in data.iterrows():
     timestamp = row['t_clock']
-    print(timestamp)
+    print("t = {:3}".format(timestamp))
     # move values (as intervals) from row to itoms
     for name in itoms.keys():
         v = row[name]
