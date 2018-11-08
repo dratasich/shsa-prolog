@@ -97,12 +97,26 @@ result = pli.evaluate("query(substitution({},S)).".format(variable))
 S = []
 for r in result.keys():
     s = pli.parse_substitution(str(r))
-    S.append(s)
-    print("\n-> {}".format(r))
+    print("\n{}: {}".format(len(S), r))
     print(s)
+    S.append(s)
+
+# log
+substitution_info = pd.DataFrame({
+    'diversity': [s.diversity(set(S) - set([s])) for s in S],
+    'num_inputs': [len(s.vin) for s in S],
+    'num_functions': [len(s) for s in S],
+}, index=np.arange(0, len(S)))
+substitution_info.to_csv('substitutions.csv')
 
 # execute python functions to get values in common domain
 def bring_to_common_domain(S, itoms):
+    """Apply substitutions to itoms.
+
+    Returns values. Values is an ordered dictionary of substitution->itom
+    (Itoms with key=substitution).
+
+    """
     output = Itoms()
     for i, s in enumerate(S):
         try:
@@ -115,13 +129,6 @@ def bring_to_common_domain(S, itoms):
     return output
 
 def faulty(outputs):
-    """Values is an ordered dictionary of substitution->itom (Itoms with
-    key=substitution)."""
-    # intervals to compare
-    values = pd.Series([output.v for output in outputs.values()])
-    # each value is only a single interval (otherwise take the hull first)
-    for v in values:
-        assert len(v) == 1
     # squared error matrix (non-overlap of intervals)
     se = np.zeros((len(values), len(values)))
     for i, v in enumerate(values):
@@ -130,27 +137,51 @@ def faulty(outputs):
             #se[i,j] = (v - w) * (v - w)
             # intersect intervals
             se[i,j] = max(0, max(v[0][0], w[0][0]) - min(v[0][1], w[0][1]))
-    # all values are zero if the values match
-    if sum(se.sum(1)) > 0:
-        print(values)
-        print(se)
-        print(se.sum(1))
+    return se.sum(1)
+
+# init result arrays
+time = data['t_clock']
+time = time.rename("t")
+size = (len(time), len(S))
+columns = np.arange(0, len(S))
+s_values = pd.DataFrame(np.zeros(size), index=time, columns=columns)
+s_epsilon = pd.DataFrame(np.zeros(size), index=time, columns=columns)
+s_error = pd.DataFrame(np.zeros(size), index=time, columns=columns)
 
 print("\n\nMonitor ...")
 for index, row in data.iterrows():
     timestamp = row['t_clock']
-    print("t = {:3}".format(timestamp))
     # move values (as intervals) from row to itoms
     for name in itoms.keys():
         v = row[name]
         e = epsilon[name]
         itoms[name].v = interval([v - e, v + e])
         itoms[name].t = timestamp
-    # print(itoms)
     # transform
-    values = bring_to_common_domain(S, itoms)
-    # print(values)
+    outputs = bring_to_common_domain(S, itoms)
+    # intervals to compare
+    values = [output.v for output in outputs.values()]
+    # each value is only a single interval (otherwise take the hull first)
+    for v in values:
+        assert len(v) == 1
+    # log
+    s_epsilon.at[timestamp, :] = [(v[0][1] - v[0][0])/2 for v in values]
+    s_values.at[timestamp, :] = [v.midpoint[0][0] for v in values]
     # compare
-    s = faulty(values)
-    # print(s)
+    error = faulty(values)
+    if min(error) > 0:
+        # faulty values
+        idx = list(error).index(max(error))
+        print("t = {:2}, faulty (most-likely): {}".format(timestamp, S[idx].vin))
+    # log
+    s_error.at[timestamp, :] = error
     # raise SystemExit("Stop.")
+
+# moving median/average over error
+# TODO
+
+# log all errors, diversity per substitution (by index over time)
+s_values.to_csv('values.csv')
+s_epsilon.to_csv('epsilon.csv')
+s_error.to_csv('error.csv')
+print("Done.")
