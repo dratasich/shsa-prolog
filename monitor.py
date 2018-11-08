@@ -10,6 +10,7 @@ import argparse
 import pandas as pd
 import numpy as np
 from interval import interval
+from collections import deque
 
 from model.problog_interface import ProblogInterface
 from model.itom import Itom, Itoms
@@ -21,6 +22,8 @@ from model.itom import Itom, Itoms
 
 parser = argparse.ArgumentParser(description="""Monitors itom logs using a
 ProbLog SHSA model.""")
+parser.add_argument("--median", "-m", action='store_true',
+                    help="""Apply median on error.""")
 parser.add_argument('model', type=str,
                     help="""SHSA model in Prolog/ProbLog.""")
 parser.add_argument('csv', type=str,
@@ -149,6 +152,7 @@ s_epsilon = pd.DataFrame(np.zeros(size), index=time, columns=columns)
 s_error = pd.DataFrame(np.zeros(size), index=time, columns=columns)
 
 print("\n\nMonitor ...")
+window = deque(maxlen=5)
 for index, row in data.iterrows():
     timestamp = row['t_clock']
     # move values (as intervals) from row to itoms
@@ -169,16 +173,15 @@ for index, row in data.iterrows():
     s_values.at[timestamp, :] = [v.midpoint[0][0] for v in values]
     # compare
     error = faulty(values)
+    if args.median:
+        window.append(error)
+        error = np.median(np.array(window), axis=0)
     if min(error) > 0:
         # faulty values
         idx = list(error).index(max(error))
         print("t = {:2}, faulty (most-likely): {}".format(timestamp, S[idx].vin))
     # log
     s_error.at[timestamp, :] = error
-    # raise SystemExit("Stop.")
-
-# moving median/average over error
-# TODO
 
 # log all errors, diversity per substitution (by index over time)
 s_values.to_csv('values.csv')
