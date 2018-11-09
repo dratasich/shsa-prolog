@@ -21,10 +21,10 @@ class MonitorTestCase(unittest.TestCase):
         self.__itoms2 = Itoms([
             Itom('x1', interval([9, 11]), variable='x'),
             Itom('a1', interval([4.9, 5.1]), variable='a'),
-            Itom('b1', interval([4, 6]), variable='b'),
+            Itom('d1', interval([19.5, 20.5]), variable='d'),
         ])
         # error (d1)
-        self.__itoms3 = Itoms([
+        self.__itoms2_err = Itoms([
             Itom('x1', interval([9, 11]), variable='x'),
             Itom('a1', interval([4.9, 5.1]), variable='a'),
             Itom('d1', interval([23, 25]), variable='d'),
@@ -60,9 +60,21 @@ class MonitorTestCase(unittest.TestCase):
         self.assertEqual(len(m.substitutions), 3)
         self.assertEqual(len(failed), 0)
         # erroneous d1
-        failed = m.monitor(self.__itoms3)
+        failed = m.monitor(self.__itoms2_err)
         self.assertEqual(len(failed), 1)
         self.assertEqual(failed[0], 'd1')
+
+    def test_monitor_filter(self):
+        # trigger error after the second error in succession
+        m = Monitor("test/test_py-monitor-simple.pl", 'x', filter_window_size=3)
+        failed = m.monitor(self.__itoms2)
+        self.assertEqual(len(failed), 0)
+        failed = m.monitor(self.__itoms2)
+        self.assertEqual(len(failed), 0)
+        failed = m.monitor(self.__itoms2_err)
+        self.assertEqual(len(failed), 0)
+        failed = m.monitor(self.__itoms2_err)
+        self.assertEqual(len(failed), 1)
 
 
 if __name__ == '__main__':

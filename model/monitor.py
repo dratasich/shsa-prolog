@@ -11,7 +11,7 @@ Copied and adapted from the original SHSA package
 
 """
 
-from collections import OrderedDict
+from collections import OrderedDict, deque
 import numpy as np
 from interval import interval
 
@@ -25,7 +25,8 @@ class Monitor(object):
 
     """
 
-    def __init__(self, model, domain, itoms=[], librarypaths=["./model/"]):
+    def __init__(self, model, domain, itoms=[], librarypaths=["./model/"],
+                 filter_window_size=0):
         """Initialize the monitor.
 
         model -- SHSA knowledge base collecting the relations between
@@ -46,6 +47,10 @@ class Monitor(object):
         """Substitutions used to bring the itoms into the common domain."""
         if itoms is not None and len(itoms) > 0:
             self.__substitutions = self.__collect_substitutions(itoms)
+        self.__window = None
+        """Window to apply np.median to the monitor results."""
+        if filter_window_size > 0:
+            self.__window = deque(maxlen=filter_window_size)
 
     @property
     def model(self):
@@ -102,6 +107,8 @@ class Monitor(object):
         if self.__substitutions is None \
            or set(itoms.keys()) != set(self.__itoms.keys()):
             self.__substitutions = self.__collect_substitutions(itoms)
+            if self.__window is not None:
+                self.__window.clear()  # reset filter
         self.__itoms = itoms  # save to identify changes in the next monitor step
         # transform: bring to common domain
         outputs = Itoms()
@@ -122,6 +129,10 @@ class Monitor(object):
                 se[i,j] = max(0, max(v[0][0], w[0][0]) - min(v[0][1], w[0][1]))
         # sum error per substitution
         error = se.sum(1)
+        # filter
+        if self.__window is not None:
+            self.__window.append(error)
+            error = np.median(np.array(self.__window), axis=0)
         # return the inputs of the substitution with the biggest error
         failed = []
         if min(error) > 0:
