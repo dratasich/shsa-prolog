@@ -34,6 +34,18 @@ class ItomTestCase(unittest.TestCase):
         l = Itoms([a, b, c])
         self.assertEqual(len(l), 3)
         self.assertEqual(l['b'].v, 1)
+        # try different initial iterables and keys
+        l = Itoms({1: a, 2: b, 3: c})
+        self.assertEqual(len(l), 3)
+        self.assertEqual(l[1], a)
+        l = Itoms(set([a, b, c]))
+        self.assertEqual(len(l), 3)
+        self.assertTrue(c in l.values())
+        # start from empty dict
+        l = Itoms()
+        l['av'] = a
+        self.assertEqual(len(l), 1)
+        self.assertEqual(l['av'], a)
 
     def test_availability(self):
         a1 = Itom('a1', 0, variable='a')

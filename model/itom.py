@@ -99,11 +99,19 @@ class Itoms(OrderedDict):
         if 'list' in kwargs.keys():
             itoms_dict = self.__to_dict(kwargs['list'])
             del kwargs['list']
-        # get list from first argument if available
+        # get initial dict (argument 0 for OrderedDict)
         try:
-            itoms_dict = self.__to_dict(args[0])
+            itoms_dict = args[0]
         except Exception as e:
+            # no initial dict given
             pass
+        # be sure we've got a dict
+        try:
+            itoms_dict = dict(itoms_dict)
+        except TypeError as e:
+            # cannot be casted to a dict
+            # transform the iterable to a dict with a custom function
+            itoms_dict = self.__to_dict(itoms_dict)
         # initialize dict
         if len(itoms_dict) > 0:
             super(Itoms, self).__init__(itoms_dict, **kwargs)
