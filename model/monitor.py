@@ -39,7 +39,7 @@ class Monitor(object):
         """SHSA knowledge base."""
         self.__domain = domain
         """Variable domain where the itoms shall be compared."""
-        self.__itoms = itoms
+        self.__itoms = Itoms(itoms)
         """Available itoms or last itoms monitored.
         Used to identify a change in the itoms."""
         self.__substitutions = None
@@ -98,8 +98,9 @@ class Monitor(object):
 
         """
         # recollect substitutions, typically, when itoms change
+        itoms = Itoms(itoms)
         if self.__substitutions is None \
-           or set(itoms.keys()) is not set(self.__itoms.keys()):
+           or set(itoms.keys()) != set(self.__itoms.keys()):
             self.__substitutions = self.__collect_substitutions(itoms)
         self.__itoms = itoms  # save to identify changes in the next monitor step
         # transform: bring to common domain
