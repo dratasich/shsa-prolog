@@ -128,7 +128,6 @@ def bring_to_common_domain(S, itoms):
         except Exception as e:
             print("Execution failed - value ignored. {}".format(e))
             raise e
-    first = False
     return output
 
 def faulty(outputs):
@@ -136,6 +135,9 @@ def faulty(outputs):
     se = np.zeros((len(values), len(values)))
     for i, v in enumerate(values):
         for j, w in enumerate(values):
+            # be sure its an interval
+            v = interval(v)
+            w = interval(w)
             # error between (1-dimensional) values
             #se[i,j] = (v - w) * (v - w)
             # intersect intervals

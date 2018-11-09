@@ -10,7 +10,7 @@ messages.
 In SHSA we refer to the data as "value" (abbreviated by v).
 Moreover, each itom provides following explanation of the data:
 - variable = associated variable or entity
-- t = timestamp of the acquisition or generation of the value.
+- t = timestamp of the acquisition or generation of the value
 and properties:
 - name = identifier of the itom
 
@@ -90,7 +90,7 @@ class Itom(object):
 
 
 class Itoms(OrderedDict):
-    """List of itoms."""
+    """Dictionary of itoms."""
 
     def __init__(self, *args, **kwargs):
         # initialize with given list
