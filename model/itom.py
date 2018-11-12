@@ -24,6 +24,7 @@ Real-time Distributed Computing (ISORC), pages 17--24, June 2014.
 """
 
 from collections import OrderedDict
+import re
 
 
 class Itom(object):
@@ -35,7 +36,7 @@ class Itom(object):
     """
 
     def __init__(self, name, value, timestamp=None, variable=None):
-        self.__name = name
+        self.__name = self.__toidentifier(name)
         """Name of this itom."""
         self.__value = value
         """Value of the variable given this itom."""
@@ -46,7 +47,7 @@ class Itom(object):
         - https://www.unixtimestamp.com/
 
         """
-        self.__variable = variable
+        self.__variable = self.__toidentifier(variable)
         """Variable this itom corresponds to."""
 
     @property
@@ -75,6 +76,25 @@ class Itom(object):
     def t(self, timestamp):
         """Set the timestamp of this itom in seconds."""
         self.__timestamp = timestamp
+
+    @staticmethod
+    def __toidentifier(string):
+        """Converts a string to valid Python identifier (if necessary)."""
+        if string is None or string.isidentifier():
+            # nothing to do
+            return string
+        # extracted from
+        # https://gist.github.com/JamesPHoughton/3a3f87c6662bf5c9eccc9f2206e228fd
+        # see also https://docs.python.org/3.7/reference/lexical_analysis.html#identifiers
+        s = string.lower()  # only a style guideline
+        s = s.strip()
+        # spaces or '/' to underscores
+        s = re.sub('[\\s\\t\\n\/]+', '_', s)
+        # drop all other invalid characters
+        s = re.sub('[^0-9a-zA-Z_]', '', s)
+        # remove leading characters until we find a letter or underscore
+        s = re.sub('^[^a-zA-Z_]+', '', s)
+        return s
 
     def __str__(self):
         return self.__name

@@ -22,6 +22,8 @@ class Function(object):
         self.__code = code
         """Code to be executed which transforms the input variables to the
         output variable."""
+        if not name.isidentifier():
+            raise RuntimeError("Function name is used in code and must follow Python identifier rules.")
         self.__name = name
         """Name of the function."""
         self.__wrap = wrap
@@ -64,10 +66,16 @@ class Function(object):
         # enclose the code with a function such that the code (includes
         # variables, possibly functions) is local in the defined function
         # `execute` (otherwise we would have to call `global fct`)
+        assert str(self.__vout).isidentifier()
+        for v in self.__vin:
+            assert str(v).isidentifier()
         code = ""
+        # create the output itom
+        # (shall be local to the created function, so we don't put it into local_vars)
         code_init_vout_itom = "{} = Itom('{}',{},variable='{}')\n".format(
             self.__vout, self.__vout, None, self.__vout)
         if self.__wrap:
+            assert self.__name.isidentifier()
             params = ",".join(self.__vin)
             code += "def {}({}):\n".format(self.__name, params)
             # code += textwrap.indent(u_code, "    ")

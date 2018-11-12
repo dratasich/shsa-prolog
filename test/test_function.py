@@ -19,6 +19,11 @@ class FunctionTestCase(unittest.TestCase):
         self.assertTrue("def" in f.code)
         f = Function('a', ['b', 'c'], "a = b + c", name="add", wrap=False)
         self.assertFalse("def" in f.code)
+        # invalid name (name must follow rules for python identifiers)
+        with self.assertRaises(Exception):
+            f = Function('a', ['b', 'c'], "a = b + c", name="1add")
+        with self.assertRaises(Exception):
+            f = Function('a', ['b', 'c'], "a = b + c", name="add b and c")
 
     def test_execute(self):
         f = Function('a', ['b', 'c'], "a.v = b.v + c.v", name="add")
@@ -43,6 +48,19 @@ class FunctionTestCase(unittest.TestCase):
         b.v = 1; c.v = 2
         v = f.execute(itoms)
         self.assertAlmostEqual(v['a'].v, 3)
+        # test execution with non-Python-identifiers as variables
+        b = Itom('0b', 1)
+        c = Itom('1c', 2)
+        f = Function('a', [b.name, c.name],
+                     "a.v = {}.v + {}.v".format(b.name, c.name))
+        v = f.execute(Itoms([b, c]))
+        self.assertAlmostEqual(v['a'].v, 3)
+        # function with lists (e.g., ROS itoms representing point clouds)
+        sonar = Itom('/p2os/sonar', [1, 3, 4])
+        f = Function('dmin', [sonar.name],
+                     "dmin.v = min({}.v)".format(sonar.name))
+        v = f.execute(Itoms([sonar]))
+        self.assertAlmostEqual(v['dmin'].v, 1)
 
     def test_equal(self):
         f1 = Function('a', ['b', 'c'], "a = b + c", name="add")

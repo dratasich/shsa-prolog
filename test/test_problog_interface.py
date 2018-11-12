@@ -76,6 +76,13 @@ class ProblogInterfaceTestCase(unittest.TestCase):
             pli.parse_function("function(a, r1, invalid)")
         with self.assertRaises(Exception):
             pli.parse_function("function(a, r1, [b, c], invalid)")
+        # any string as identifiers
+        pli.reset()
+        b = Itom('/bb/b', [1, 2, 3])
+        pli.append('implementation(equal, "a = {}").'.format(b))
+        f = pli.parse_function("function(a, equal, [{}]).".format(b))
+        v = f.execute([b])
+        self.assertEqual(len(v['a'].v), 3)
 
     def test_parse_substitution(self):
         pli = ProblogInterface()
@@ -119,6 +126,14 @@ class ProblogInterfaceTestCase(unittest.TestCase):
         pli.reset()
         with self.assertRaises(Exception):
             s = pli.parse_substitution("substitution(x, [function(x,r1,[a]), a1] )")
+        # any string as itom identifiers
+        pli.reset()
+        b = Itom('/p2os/sonar', [1, 2, 3])
+        pli.append('implementation(min, "a.v = min(b.v)").')
+        s = pli.parse_substitution("substitution(a, [function(a, min, [b]), {}]).".format(b))
+        print(s)
+        v = s.execute([b])
+        self.assertEqual(v['a'].v, 1)
 
     def test_parse_variableOf(self):
         pli = ProblogInterface()
