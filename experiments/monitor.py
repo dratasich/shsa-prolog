@@ -24,6 +24,8 @@ parser = argparse.ArgumentParser(description="""Monitors itom logs using a
 ProbLog SHSA model.""")
 parser.add_argument("--median", "-m", action='store_true',
                     help="""Apply median on error.""")
+parser.add_argument("--include", "-I", default="./model/", nargs='*',
+                    help="""Path to ProbLog files to include.""")
 parser.add_argument('model', type=str,
                     help="""SHSA model in Prolog/ProbLog.""")
 parser.add_argument('csv', type=str,
@@ -36,7 +38,7 @@ args = parser.parse_args()
 # load the model
 #
 
-pli = ProblogInterface(librarypaths=["./model/"])
+pli = ProblogInterface(librarypaths=args.include)
 pli.load(args.model)
 
 # define epsilon for itoms (static)
