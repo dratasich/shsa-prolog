@@ -12,8 +12,10 @@ Copied and adapted from the original SHSA package
 """
 
 from collections import OrderedDict, deque
-import numpy as np
 from interval import interval
+import numpy as np
+import re
+import problog
 
 from model.itom import Itom, Itoms
 from model.problog_interface import ProblogInterface
@@ -45,8 +47,12 @@ class Monitor(object):
         Used to identify a change in the itoms."""
         self.__substitutions = None
         """Substitutions used to bring the itoms into the common domain."""
-        if itoms is not None and len(itoms) > 0:
+        try:
             self.__substitutions = self.__collect_substitutions(itoms)
+        except problog.engine.UnknownClause as e:
+            # no itomsOf in the problog model (needed to find substitutions)
+            # we will try later (monitor)
+            pass
         self.__window = None
         """Window to apply np.median to the monitor results."""
         if filter_window_size > 0:
@@ -73,16 +79,18 @@ class Monitor(object):
         self.__pli.reset()
         self.__pli.load(model)
 
-    def __collect_substitutions(self, itoms):
+    def __collect_substitutions(self, itoms=[]):
         """Find relations from variables (given itoms) to domain."""
-        # be sure itoms is of the right type 'Itoms'
-        itoms = Itoms(itoms)
-        # append available itoms to program with "itomsOf(variable,[itom1,..])"
         program = "\n"
-        for variable, il in itoms.availability.items():
-            names = [i.name for i in il]
-            program += "itomsOf({},[{}]).\n".format(variable, ','.join(names))
-        program += "\n"
+        if len(itoms) > 0:
+            # be sure itoms is of the right type 'Itoms'
+            itoms = Itoms(itoms)
+            # append available itoms to program with "itomsOf(variable,[itom1,..])"
+            for variable, il in itoms.availability.items():
+                names = [i.name for i in il]
+                program += "itomsOf({},[{}]).\n".format(variable, ','.join(names))
+            program += "\n"
+        assert "itomsOf" in program or "itomsOf" in self.__pli.program
         # get all valid substitutions for the domain
         # -> query problog knowledge base
         result = self.__pli.evaluate(

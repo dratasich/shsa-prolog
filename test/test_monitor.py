@@ -47,6 +47,9 @@ class MonitorTestCase(unittest.TestCase):
         # init with itoms
         m = Monitor("test/test_py-monitor-simple.pl", 'x', itoms=self.__itoms1)
         self.assertEqual(len(m.substitutions), 6)
+        # static availability (itomsOf are part of the model)
+        m = Monitor("test/test_py-monitor-static.pl", 'x')
+        self.assertEqual(len(m.substitutions), 3)
 
     def test_monitor(self):
         m = Monitor("test/test_py-monitor-simple.pl", 'x')
