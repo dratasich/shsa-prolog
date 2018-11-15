@@ -80,7 +80,17 @@ class Itom(object):
     @staticmethod
     def __toidentifier(string):
         """Converts a string to valid Python identifier (if necessary)."""
-        if string is None or string.isidentifier():
+        if string is None:
+            return string
+        string_is_identifier = False
+        try:
+            string_is_identifier = string.isidentifier()
+        except AttributeError as e:
+            # Python2
+            import tokenize, keyword
+            string_is_identifier = re.match(tokenize.Name + '$', string) \
+                                   and not keyword.iskeyword(string)
+        if string_is_identifier:
             # nothing to do
             return string
         # extracted from
