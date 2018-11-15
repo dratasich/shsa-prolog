@@ -107,7 +107,8 @@ class Monitor(object):
 
         itoms -- dictionary of itoms
 
-        Returns the failed itom names.
+        Returns the substitution with the highest error (from the substitutions
+        with error > 0). If everything is fine, None is returned.
 
         """
         # recollect substitutions, typically, when itoms change
@@ -141,9 +142,8 @@ class Monitor(object):
         if self.__window is not None:
             self.__window.append(error)
             error = np.median(np.array(self.__window), axis=0)
-        # return the inputs of the substitution with the biggest error
-        failed = []
+        # return the substitution with the biggest error
         if min(error) > 0:
             idx = list(error).index(max(error))
-            failed.extend(self.__substitutions[idx].vin)
-        return failed
+            return self.__substitutions[idx]
+        return None

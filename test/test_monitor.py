@@ -55,29 +55,28 @@ class MonitorTestCase(unittest.TestCase):
         m = Monitor("test/test_py-monitor-simple.pl", 'x')
         failed = m.monitor(self.__itoms1)
         self.assertEqual(len(m.substitutions), 6)
-        self.assertEqual(len(failed), 1)
-        self.assertEqual(failed[0], 'd1')
+        self.assertTrue(failed in m.substitutions)
+        self.assertTrue('d1' in failed.vin)
         # interval itoms
         # recollect substitutions
         failed = m.monitor(self.__itoms2)
         self.assertEqual(len(m.substitutions), 3)
-        self.assertEqual(len(failed), 0)
-        # erroneous d1
+        self.assertEqual(failed, None)
+        # erroneous
         failed = m.monitor(self.__itoms2_err)
-        self.assertEqual(len(failed), 1)
-        self.assertEqual(failed[0], 'd1')
+        self.assertTrue('d1' in failed.vin)
 
     def test_monitor_filter(self):
         # trigger error after the second error in succession
         m = Monitor("test/test_py-monitor-simple.pl", 'x', filter_window_size=3)
         failed = m.monitor(self.__itoms2)
-        self.assertEqual(len(failed), 0)
+        self.assertEqual(failed, None)
         failed = m.monitor(self.__itoms2)
-        self.assertEqual(len(failed), 0)
+        self.assertEqual(failed, None)
         failed = m.monitor(self.__itoms2_err)
-        self.assertEqual(len(failed), 0)
+        self.assertEqual(failed, None)
         failed = m.monitor(self.__itoms2_err)
-        self.assertEqual(len(failed), 1)
+        self.assertNotEqual(failed, None)
 
 
 if __name__ == '__main__':

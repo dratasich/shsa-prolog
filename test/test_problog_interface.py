@@ -131,7 +131,6 @@ class ProblogInterfaceTestCase(unittest.TestCase):
         b = Itom('/p2os/sonar', [1, 2, 3])
         pli.append('implementation(min, "a.v = min(b.v)").')
         s = pli.parse_substitution("substitution(a, [function(a, min, [b]), {}]).".format(b))
-        print(s)
         v = s.execute([b])
         self.assertEqual(v['a'].v, 1)
 
