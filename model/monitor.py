@@ -90,6 +90,7 @@ class Monitor(object):
             itoms = Itoms(itoms)
             # append available itoms to program with "itomsOf(variable,[itom1,..])"
             for variable, il in itoms.availability.items():
+                assert variable is not None and variable != ""
                 names = [i.name for i in il]
                 program += "itomsOf({},[{}]).\n".format(variable, ','.join(names))
             program += "\n"
@@ -102,6 +103,11 @@ class Monitor(object):
         for r in result.keys():
             s = self.__pli.parse_substitution(str(r))
             S.append(s)
+        if len(itoms) == 0:
+            # set itoms used (default value)
+            for s in S:
+                for v in s.vin:
+                    self.__itoms[v.name] = Itom(v.name, 0.0, variable=v.name)
         return S
 
     def monitor(self, itoms):
