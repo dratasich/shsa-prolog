@@ -24,10 +24,10 @@ Real-time Distributed Computing (ISORC), pages 17--24, June 2014.
 """
 
 from collections import OrderedDict
-import re
+from model.variable import Variable
 
 
-class Itom(object):
+class Itom(Variable):
     """Itom class.
 
     Note that the timestamp is reset when you set the value.
@@ -36,8 +36,6 @@ class Itom(object):
     """
 
     def __init__(self, name, value, timestamp=None, variable=None):
-        self.__name = self.__toidentifier(name)
-        """Name of this itom."""
         self.__value = value
         """Value of the variable given this itom."""
         self.__timestamp = timestamp
@@ -47,12 +45,13 @@ class Itom(object):
         - https://www.unixtimestamp.com/
 
         """
-        self.__variable = self.__toidentifier(variable)
+        self.__variable = None
+        if variable is not None:
+            self.__variable = self.toidentifier(variable)
         """Variable this itom corresponds to."""
-
-    @property
-    def name(self):
-        return self.__name
+        # use name and codename of superclass variable
+        # to represent itoms name and codename
+        super(Itom, self).__init__(name)
 
     @property
     def variable(self):
@@ -77,46 +76,22 @@ class Itom(object):
         """Set the timestamp of this itom in seconds."""
         self.__timestamp = timestamp
 
-    @staticmethod
-    def __toidentifier(string):
-        """Converts a string to valid Python identifier (if necessary)."""
-        if string is None:
-            return string
-        string_is_identifier = False
-        try:
-            string_is_identifier = string.isidentifier()
-        except AttributeError as e:
-            # Python2
-            import tokenize, keyword
-            string_is_identifier = re.match(tokenize.Name + '$', string) \
-                                   and not keyword.iskeyword(string)
-        if string_is_identifier:
-            # nothing to do
-            return string
-        # extracted from
-        # https://gist.github.com/JamesPHoughton/3a3f87c6662bf5c9eccc9f2206e228fd
-        # see also https://docs.python.org/3.7/reference/lexical_analysis.html#identifiers
-        s = string.lower()  # only a style guideline
-        s = s.strip()
-        # spaces or '/' to underscores
-        s = re.sub('[\\s\\t\\n\/]+', '_', s)
-        # drop all other invalid characters
-        s = re.sub('[^0-9a-zA-Z_]', '', s)
-        # remove leading characters until we find a letter or underscore
-        s = re.sub('^[^a-zA-Z_]+', '', s)
-        return s
-
     def __str__(self):
-        return self.__name
+        return self._name
 
     def __eq__(self, other):
-        return (self.__name == other.__name) \
-            and (self.__variable == other.__variable) \
-            and (self.__value == other.__value) \
-            and (self.__timestamp == other.__timestamp)
+        if isinstance(other, Itom):
+            return (self._name == other._name) \
+                and (self.__variable == other.__variable) \
+                and (self.__value == other.__value) \
+                and (self.__timestamp == other.__timestamp)
+        return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __hash__(self):
-        return hash((self.__name, self.__variable, self.__value, self.__timestamp))
+        return hash((self._name, self.__variable, self.__value, self.__timestamp))
 
 
 class Itoms(OrderedDict):
@@ -142,6 +117,8 @@ class Itoms(OrderedDict):
             # cannot be casted to a dict
             # transform the iterable to a dict with a custom function
             itoms_dict = self.__to_dict(itoms_dict)
+        # be sure every element (value) is an itom
+        itoms_dict = self.__to_itoms_dict(itoms_dict)
         # initialize dict
         if len(itoms_dict) > 0:
             super(Itoms, self).__init__(itoms_dict, **kwargs)
@@ -152,6 +129,17 @@ class Itoms(OrderedDict):
         itoms_dict = {}
         for itom in itoms_list:
             itoms_dict[itom.name] = itom
+        return itoms_dict
+
+    def __to_itoms_dict(self, adict):
+        if len(adict) == 0:
+            return adict
+        itoms_dict = {}
+        for k, v in adict.items():
+            if not isinstance(v, Itom):
+                itoms_dict[k] = Itom(k, v)
+            else:
+                itoms_dict[k] = v
         return itoms_dict
 
     @property

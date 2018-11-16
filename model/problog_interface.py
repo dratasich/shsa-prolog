@@ -11,6 +11,7 @@ import pyparsing as pp
 
 from model.function import Function
 from model.substitution import Substitution
+from model.variable import Variable
 
 
 class ProblogInterface(object):
@@ -63,10 +64,9 @@ class ProblogInterface(object):
         delimiter = pp.Literal(",").suppress()
         # parameters
         identifier = pp.Word(pp.alphanums + "_")
-        timestamp = pp.Combine(pp.Literal("t(") + identifier + pp.Literal(")"))
-        name = timestamp | identifier
-        vlist = pp.Group(list_open + name + pp.ZeroOrMore(delimiter + name) + list_close)
         string = pp.QuotedString('"', multiline=True)
+        name = string | identifier
+        vlist = pp.Group(list_open + name + pp.ZeroOrMore(delimiter + name) + list_close)
         # shsa 'function': function(vout, relation, [vin1, ..])
         pl_function = pp.Group(pp.Literal("function").suppress() + fct_open \
                         + name('output') + delimiter \
@@ -166,9 +166,16 @@ class ProblogInterface(object):
         except Exception as e:
             # expr_result does not contain a 'function' (any more)
             # -> it is an itom
-            itom = expr_results
-            code = "{} = {}".format(vout, itom)
-            f = Function(vout, [itom], code, name="equals", wrap=False)
+            itom_name = str(expr_results)
+            code = "# {} = {}\n".format(vout, itom_name)
+            # copy (constructor) to copy value and timestamp
+            # (we don't know the value and timestamp yet)
+            # (value might be an object too -> deepcopy)
+            code += "{} = copy.deepcopy({})\n".format(
+                vout, Variable.toidentifier(itom_name))
+            # change name to variable (its not the original itom!)
+            code += "{}.name = '{}'\n".format(vout, vout)
+            f = Function(vout, [itom_name], code, name="equals", wrap=False)
             substitution.append(f)
             return substitution
         function = self.__get_function_of(fct_term)
@@ -180,7 +187,7 @@ class ProblogInterface(object):
             substitution.extend(self.__get_substitution_of(function.vin[i], s))
         # finally add the function
         substitution.append(function)
-        assert substitution.vout == vout
+        assert str(substitution.vout) == str(vout)
         return substitution
 
     def parse_variableOf(self, term):

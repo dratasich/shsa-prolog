@@ -36,6 +36,9 @@ class Monitor(object):
         domain -- Common domain (a variable in the knowledge base) where the
             itoms will be compared to each other.
         itoms -- Itoms-object holding inputs to the monitor.
+        librarypaths -- Set paths of problog libraries used in model.
+        filter_window_size -- Set the size of the window for the median filter.
+
         """
         self.__pli = ProblogInterface(librarypaths=librarypaths)
         self.__pli.load(model)
@@ -93,9 +96,8 @@ class Monitor(object):
         assert "itomsOf" in program or "itomsOf" in self.__pli.program
         # get all valid substitutions for the domain
         # -> query problog knowledge base
-        result = self.__pli.evaluate(
-            program + "query(substitution({},S)).".format(self.__domain)
-        )
+        program += "query(substitution({},S)).".format(self.__domain)
+        result = self.__pli.evaluate(program)
         S = []
         for r in result.keys():
             s = self.__pli.parse_substitution(str(r))

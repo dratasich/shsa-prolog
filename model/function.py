@@ -6,14 +6,28 @@ __author__ = Denise Ratasich
 """
 
 import textwrap3 as textwrap
+from model.variable import Variable, Variables
 from model.itom import Itom, Itoms
+import copy
 
 
 class Function(object):
     """Function class."""
 
     def __init__(self, vout, vin, code, name="fct", wrap=True):
-        if len(set(vin) & set([vout])) > 0:
+        """Initialize a function.
+
+        vout -- output variable
+        vin -- list/set of input variables
+        code -- python executable string
+        name -- name of the function (has to be a valid identifier)
+        wrap -- flag to wrap the code into a python function
+
+        """
+        # be sure vout and vin are variables
+        vout = Variable(vout)
+        vin = Variables(vin)
+        if len(set([str(v) for v in vin]) & set([str(vout)])) > 0:
             raise RuntimeError("Not supported: output variable is also an input.")
         self.__vin = vin
         """List of input variables."""
@@ -84,7 +98,7 @@ class Function(object):
             self.__vout, self.__vout, None, self.__vout)
         if self.__wrap:
             # assert self.__name.isidentifier()
-            params = ",".join(self.__vin)
+            params = ",".join([v.codename for v in self.__vin])
             code += "def {}({}):\n".format(self.__name, params)
             # code += textwrap.indent(u_code, "    ")
             code += textwrap.indent(code_init_vout_itom, "    ")
@@ -105,22 +119,31 @@ class Function(object):
         # make sure its an Itoms-object
         itoms = Itoms(itoms)
         # verify inputs
-        if not set(self.__vin).issubset(set(itoms.keys())):
+        if not set([v.name for v in self.__vin]).issubset(
+                set([v.name for v in itoms.values()])):
             raise RuntimeError("Missing itoms to execute the function.")
         # generate code
         code = self.__enclosed_code()
         # execute code
-        local_vars = itoms
-        exec(code, {'Itom': Itom}, local_vars)
-        return local_vars
+        local_vars = {i.codename: i for i in itoms.values()}
+        exec(code, {'Itom': Itom, 'copy': copy}, local_vars)
+        # local_vars may include utils and functions
+        # -> keep only inputs and output
+        itoms[self.vout.name] = local_vars[self.vout.name]
+        return itoms
 
     def __str__(self):
         return self.__name
 
     def __eq__(self, other):
-        return (self.__vout == other.__vout) \
-            and (set(self.__vin) == set(other.__vin)) \
-            and (self.__code == other.__code)
+        if isinstance(other, Function):
+            return (self.__vout == other.__vout) \
+                and (set(self.__vin) == set(other.__vin)) \
+                and (self.__code == other.__code)
+        return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __hash__(self):
         return hash((self.__vout, self.__vin, self.__code))

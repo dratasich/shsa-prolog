@@ -46,9 +46,11 @@ class MonitorTestCase(unittest.TestCase):
         self.assertEqual(m.domain, 'a')
         # init with itoms
         m = Monitor("test/test_py-monitor-simple.pl", 'x', itoms=self.__itoms1)
+        self.assertNotEqual(m.substitutions, None)
         self.assertEqual(len(m.substitutions), 6)
         # static availability (itomsOf are part of the model)
         m = Monitor("test/test_py-monitor-static.pl", 'x')
+        self.assertNotEqual(m.substitutions, None)
         self.assertEqual(len(m.substitutions), 3)
 
     def test_monitor(self):
@@ -56,7 +58,7 @@ class MonitorTestCase(unittest.TestCase):
         failed = m.monitor(self.__itoms1)
         self.assertEqual(len(m.substitutions), 6)
         self.assertTrue(failed in m.substitutions)
-        self.assertTrue('d1' in failed.vin)
+        self.assertTrue('d1' in [v.name for v in failed.vin])
         # interval itoms
         # recollect substitutions
         failed = m.monitor(self.__itoms2)
@@ -64,7 +66,7 @@ class MonitorTestCase(unittest.TestCase):
         self.assertEqual(failed, None)
         # erroneous
         failed = m.monitor(self.__itoms2_err)
-        self.assertTrue('d1' in failed.vin)
+        self.assertTrue('d1' in [v.name for v in failed.vin])
 
     def test_monitor_filter(self):
         # trigger error after the second error in succession

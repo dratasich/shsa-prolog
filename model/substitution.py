@@ -44,6 +44,14 @@ class Substitution(list):
             return set()
         return self.__collect_input_variables()
 
+    @property
+    def code(self):
+        """Returns code from functions in execution order."""
+        string = ""
+        for f in self:
+            string += f.code
+        return string
+
     def __collect_input_variables(self):
         """Returns the set of input variables.
 
@@ -74,7 +82,8 @@ class Substitution(list):
         # make sure its an Itoms-object
         itoms = Itoms(itoms)
         # verify inputs
-        if not self.vin.issubset(set(itoms.keys())):
+        if not set([v.name for v in self.vin]).issubset(
+                set([v.name for v in itoms.values()])):
             raise RuntimeError("Missing itoms to execute the substitution.")
         # execute function after function
         for f in self:
@@ -83,8 +92,8 @@ class Substitution(list):
 
     def __str__(self):
         strinputs = "inputs({});".format(self.vin)
-        strfcts = [f.vout + "=" \
-                   + str(f) + "(" + ",".join(f.vin) + ");"
+        strfcts = [str(f.vout) + "=" \
+                   + str(f) + "(" + ",".join([str(v) for v in f.vin]) + ");"
                    for f in self]
         return strinputs + "\n" + "\n".join(strfcts)
 
