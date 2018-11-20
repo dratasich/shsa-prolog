@@ -9,6 +9,7 @@ import textwrap3 as textwrap
 from model.variable import Variable, Variables
 from model.itom import Itom, Itoms
 import copy
+import interval
 
 
 class Function(object):
@@ -126,7 +127,9 @@ class Function(object):
         code = self.__enclosed_code()
         # execute code
         local_vars = {i.codename: i for i in itoms.values()}
-        exec(code, {'Itom': Itom, 'copy': copy}, local_vars)
+        exec(code,
+             {'Itom': Itom, 'copy': copy, 'interval': interval},
+             local_vars)
         # local_vars may include utils and functions
         # -> keep only inputs and output
         itoms[self.vout.name] = local_vars[self.vout.name]
