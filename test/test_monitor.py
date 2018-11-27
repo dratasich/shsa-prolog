@@ -70,7 +70,7 @@ class MonitorTestCase(unittest.TestCase):
 
     def test_monitor_filter(self):
         # trigger error after the second error in succession
-        m = Monitor("test/test_py-monitor-simple.pl", 'x', filter_window_size=3)
+        m = Monitor("test/test_py-monitor-simple.pl", 'x', median_filter_window_size=3)
         failed = m.monitor(self.__itoms2)
         self.assertEqual(failed, None)
         failed = m.monitor(self.__itoms2)
@@ -79,6 +79,26 @@ class MonitorTestCase(unittest.TestCase):
         self.assertEqual(failed, None)
         failed = m.monitor(self.__itoms2_err)
         self.assertNotEqual(failed, None)
+
+    def test_debug(self):
+        m = Monitor("test/test_py-monitor-simple.pl", 'x')
+        # check callback invocation
+        class Callback(object):
+            def __init__(self):
+                self.called = False
+            def callback(self, outputs, values, error, failed):
+                self.called = True
+        c = Callback()
+        m.set_debug_callback(c.callback)
+        m.monitor(self.__itoms2)
+        self.assertTrue(c.called)
+        # check variables we get for debugging
+        def clbk(outputs, values, error, failed):
+            self.assertEqual(len(values), 3)
+            self.assertEqual(len(error), 3)  # error for each substitution
+            self.assertEqual(sum(error), 0)  # no error
+        m.set_debug_callback(clbk)
+        m.monitor(self.__itoms2)
 
 
 if __name__ == '__main__':

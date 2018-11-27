@@ -35,6 +35,7 @@ class ProblogInterface(object):
         return self.__program
 
     def reset(self):
+        """Resets the problog program."""
         self.__program = ""
         """Problog program to query."""
 
@@ -49,6 +50,11 @@ class ProblogInterface(object):
         self.__program += programstr + "\n"
 
     def evaluate(self, appendstr=""):
+        """Evaluate the program.
+
+        appendstr -- additional string to add to the program only for evaluation
+
+        """
         model = problog.program.PrologString(
             self.__program + "\n" + appendstr + "\n")
         result = problog.get_evaluatable().create_from(model).evaluate()

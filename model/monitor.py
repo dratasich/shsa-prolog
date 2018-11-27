@@ -28,7 +28,7 @@ class Monitor(object):
     """
 
     def __init__(self, model, domain, itoms=[], librarypaths=["./model/"],
-                 filter_window_size=0):
+                 average_filter_window_size=0, median_filter_window_size=0):
         """Initialize the monitor.
 
         model -- SHSA knowledge base collecting the relations between
@@ -56,10 +56,18 @@ class Monitor(object):
             # no itomsOf in the problog model (needed to find substitutions)
             # we will try later (monitor)
             pass
-        self.__window = None
+        # filters
+        self.__median_window = None
         """Window to apply np.median to the monitor results."""
-        if filter_window_size > 0:
-            self.__window = deque(maxlen=filter_window_size)
+        if median_filter_window_size > 0:
+            self.__median_window = deque(maxlen=median_filter_window_size)
+        self.__average_window = None
+        """Window to apply np.average to the monitor results."""
+        if average_filter_window_size > 0:
+            self.__average_window = deque(maxlen=average_filter_window_size)
+        # debugging
+        self.__debug_callback = None
+        """Called at the end of monitor(.) to debug the monitor step."""
 
     @property
     def model(self):
@@ -81,6 +89,10 @@ class Monitor(object):
         self.__domain = domain
         self.__pli.reset()
         self.__pli.load(model)
+
+    def set_debug_callback(self, fct):
+        self.__debug_callback = fct
+        return
 
     def __collect_substitutions(self, itoms=[]):
         """Find relations from variables (given itoms) to domain."""
@@ -124,8 +136,11 @@ class Monitor(object):
         if self.__substitutions is None \
            or set(itoms.keys()) != set(self.__itoms.keys()):
             self.__substitutions = self.__collect_substitutions(itoms)
-            if self.__window is not None:
-                self.__window.clear()  # reset filter
+            # reset filter
+            if self.__average_window is not None:
+                self.__average_window.clear()
+            if self.__median_window is not None:
+                self.__median_window.clear()  # reset filter
         self.__itoms = itoms  # save to identify changes in the next monitor step
         # transform: bring to common domain
         outputs = Itoms()
@@ -146,12 +161,20 @@ class Monitor(object):
                 se[i,j] = max(0, max(v[0][0], w[0][0]) - min(v[0][1], w[0][1]))
         # sum error per substitution
         error = se.sum(1)
-        # filter
-        if self.__window is not None:
-            self.__window.append(error)
-            error = np.median(np.array(self.__window), axis=0)
+        # filter (apply average first and then filter outliers with median)
+        if self.__average_window is not None:
+            self.__average_window.append(error)
+            error = np.average(np.array(self.__average_window), axis=0)
+        if self.__median_window is not None:
+            self.__median_window.append(error)
+            error = np.median(np.array(self.__median_window), axis=0)
         # return the substitution with the biggest error
+        failed = None
         if min(error) > 0:
             idx = list(error).index(max(error))
-            return self.__substitutions[idx]
-        return None
+            failed = self.__substitutions[idx]
+        # debug
+        if self.__debug_callback is not None:
+            self.__debug_callback(outputs, values, error, failed)
+        # done
+        return failed
