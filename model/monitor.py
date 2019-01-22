@@ -165,10 +165,10 @@ class Monitor(BaseMonitor):
         super(Monitor, self).__init__(model, domain, itoms=itoms,
                                       librarypaths=librarypaths)
 
-    def _error_matrix(self, itoms, reset=False):
+    def _compare(self, itoms, reset=False):
         """Calculate errors between substitutions.
 
-        Returns an error matrix of size nxm, where
+        Returns an error matrix of size nxm and related information.
         - n .. number of substitutions * max delay.
         - m .. number of substitutions
 
@@ -192,17 +192,24 @@ class Monitor(BaseMonitor):
         # values to compare
         values = [output.v for output in outputs.values()]
         self.__queue_values.extend(values)
-        # compare: squared error matrix (non-overlap of intervals)
-        se = np.zeros((len(self.__queue_values), len(values)))
+        # compare: error matrix (non-overlap of intervals)
+        error = np.zeros((len(self.__queue_values), len(values)))
+        overlap = np.zeros((len(self.__queue_values), len(values)))
         for i, v in enumerate(self.__queue_values):
             for j, w in enumerate(values):
-                # error between (non-interval) values
+                # squared error between (non-interval) values
                 #se[i,j] = (v - w) * (v - w)
                 # intersect intervals
                 v = interval(v)
                 w = interval(w)
-                se[i,j] = max(0, max(v[0][0], w[0][0]) - min(v[0][1], w[0][1]))
-        return se, outputs, values
+                error[i,j] = max(0, max(v[0][0], w[0][0]) - min(v[0][1], w[0][1]))
+                intersection = v & w
+                if len(intersection) > 0:
+                    overlap[i,j] = abs(intersection[0][1] - intersection[0][0])
+                else:
+                    assert error[i,j] > 0
+                    overlap[i,j] = 0
+        return error, overlap, outputs, self.__queue_values
 
     def _monitor(self, itoms, reset=False):
         """Fault detection on given itoms.
@@ -221,7 +228,7 @@ class Monitor(BaseMonitor):
             if self.__median_window is not None:
                 self.__median_window.clear()  # reset filter
         # calculate error between substitutions
-        error, outputs, values = self._error_matrix(itoms, reset)
+        error, _, outputs, values = self._compare(itoms, reset)
         # sum error per value
         error = error.sum(1)
         # order errors per substitution
