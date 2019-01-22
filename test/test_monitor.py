@@ -2,7 +2,7 @@ import unittest
 from interval import interval
 
 from model.itom import Itom, Itoms
-from model.monitor import Monitor
+from model.monitor import Monitor, BayesMonitor
 
 
 class MonitorTestCase(unittest.TestCase):
@@ -122,6 +122,26 @@ class MonitorTestCase(unittest.TestCase):
                 self.assertNotEqual(failed, None)
             else:
                 self.assertEqual(failed, None)
+
+    def test_bayes_monitor(self):
+        m = BayesMonitor("test/test_py-monitor-simple.pl", 'x')
+        iok = Itoms([
+            Itom('x1', interval([9, 11]), variable='x', delay=0),
+            Itom('a1', interval([5, 6]), variable='a', delay=1),
+            Itom('b1', interval([4, 8]), variable='b', delay=1),
+        ])
+        ifaulty = Itoms([
+            Itom('x1', interval([9, 11]), variable='x', delay=0),
+            Itom('a1', interval([4, 5]), variable='a', delay=1),
+            Itom('b1', interval([6, 8]), variable='b', delay=1),
+        ])
+        failed = m.monitor(iok)
+        self.assertEqual(failed, None)
+        failed = m.monitor(ifaulty)
+        self.assertEqual(failed, None)
+        failed = m.monitor(ifaulty)
+        self.assertNotEqual(failed, None)
+        self.assertTrue('b1' in [v.name for v in failed.vin])
 
 
 if __name__ == '__main__':

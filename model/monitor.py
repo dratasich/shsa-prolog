@@ -255,3 +255,104 @@ class Monitor(BaseMonitor):
             self._debug_callback(outputs, values, error, failed)
         # done
         return failed
+
+
+class BayesMonitor(Monitor):
+    """Monitor transfers itoms to a given common domain exploiting a SHSA model and
+    checks for equality by interval arithmetic and a Bayesian network.
+
+    """
+
+    def _match_probabilities(self, error_matrix, overlap_matrix, values):
+        assert error_matrix.shape == overlap_matrix.shape
+        m, n = error_matrix.shape
+        # number of time steps
+        t = int(m / n)
+        # calculate interval size per value
+        uncertainty = np.zeros(len(values))
+        for i, v in enumerate(values):
+            v = interval(v)
+            uncertainty[i] = v[0][1] - v[0][0]
+        # scale and cut matrices by uncertainty
+        for i in range(m):
+            for j in range(n):
+                u = min(uncertainty[i], uncertainty[j])
+                overlap_matrix[i, j] = overlap_matrix[i, j] / u
+                assert overlap_matrix[i, j] <= 1
+                error_matrix[i, j] = min(1, error_matrix[i, j] / u)
+        # reduce matrices (time handling)
+        error_sub_matrices = np.vsplit(error_matrix, t)
+        overlap_sub_matrices = np.vsplit(overlap_matrix, t)
+        error = np.ones((n, n))
+        for a in error_sub_matrices:
+            error = np.minimum(a, error)
+        overlap = np.zeros((n, n))
+        for a in overlap_sub_matrices:
+            overlap = np.maximum(a, overlap)
+        # join vice-versa errors (min error, max overlap)
+        e = np.ones((n, n))
+        for i in range(n):
+            for j in range(n):
+                e[i, j] = min(error[i, j], error[j, i])
+        error = e
+        o = np.zeros((n, n))
+        for i in range(n):
+            for j in range(n):
+                o[i, j] = max(overlap[i, j], overlap[j, i])
+        overlap = o
+        # init probabilities
+        match = np.full((n, n), 0.5)
+        # increase probabilities depending on error or overlap
+        for i in range(n):
+            for j in range(n):
+                match[i, j] -= 0.4 * error[i, j]
+                match[i, j] += 0.4 * overlap[i, j]
+        return match
+
+    def _match(self, error_matrix):
+        m, n = error_matrix.shape
+        # number of time steps
+        t = int(m / n)
+        # reduce matrix (time handling)
+        error_sub_matrices = np.vsplit(error_matrix, t)
+        error = np.ones((n, n))
+        for a in error_sub_matrices:
+            error = np.minimum(a, error)
+        # join vice-versa errors (min error, max overlap)
+        e = np.ones((n, n))
+        for i in range(n):
+            for j in range(n):
+                e[i, j] = min(error[i, j], error[j, i])
+        error = e
+        # init match
+        match = np.full((n, n), True)
+        for i in range(n):
+            for j in range(n):
+                if error[i, j] > 0:
+                    match[i, j] = False
+        return match
+
+    def _monitor(self, itoms, reset=False):
+        # calculate error between substitutions
+        error, overlap, outputs, values = self._compare(itoms, reset)
+        match = self._match(error)
+        assert np.equal(match, match.transpose()).all()
+        pli = ProblogInterface(librarypaths=[])
+        assert len(match) == 3
+        pli.load("model/vote3.pl")
+        program = ""
+        for i in range(0,len(match)):
+            for j in range(i+1,len(match)):
+                m = str(match[i, j]).lower()
+                program += f"evidence(match(s{i},s{j}), {m}).\n"
+                # program += f"{match[i, j]}::match(s{i},s{j})\n"
+        for i in range(len(match)):
+            program += f"query(failed(s{i}, s{(i+1)%3}, s{(i+2)%3})).\n"
+        result = pli.evaluate(program)
+        probs = result.values()  # probabilities
+        # return substitution with highest failure probability
+        failed = None
+        if min(probs) > 0.49:  # 0.5 .. no idea if a failure occured or not
+            idx = list(probs).index(max(probs))
+            failed = self.substitutions[idx]
+        return failed
