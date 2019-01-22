@@ -165,22 +165,20 @@ class Monitor(BaseMonitor):
         super(Monitor, self).__init__(model, domain, itoms=itoms,
                                       librarypaths=librarypaths)
 
-    def _monitor(self, itoms, reset=False):
-        """Fault detection on given itoms.
+    def _error_matrix(self, itoms, reset=False):
+        """Calculate errors between substitutions.
 
-        itoms -- dictionary of itoms
+        Returns an error matrix of size nxm, where
+        - n .. number of substitutions * max delay.
+        - m .. number of substitutions
 
-        Returns the substitution with the highest error (from the substitutions
-        with error > 0). If everything is fine, None is returned.
+        Indices correspond to substitution indices.
+
+        This method considers delayed measurements too.
 
         """
         # itoms have changed, monitor has been re-initialized with new substitutions
         if reset:
-            # reset filter
-            if self.__average_window is not None:
-                self.__average_window.clear()
-            if self.__median_window is not None:
-                self.__median_window.clear()  # reset filter
             # reset queue
             self.__queue = deque(maxlen=(itoms.delay + 1))
             self.__queue_values = deque(maxlen=(len(itoms) * (itoms.delay + 1)))
@@ -204,8 +202,35 @@ class Monitor(BaseMonitor):
                 v = interval(v)
                 w = interval(w)
                 se[i,j] = max(0, max(v[0][0], w[0][0]) - min(v[0][1], w[0][1]))
-        # sum error per substitution
-        error = se.sum(1)
+        return se, outputs, values
+
+    def _monitor(self, itoms, reset=False):
+        """Fault detection on given itoms.
+
+        itoms -- dictionary of itoms
+
+        Returns the substitution with the highest error (from the substitutions
+        with error > 0). If everything is fine, None is returned.
+
+        """
+        # itoms have changed, monitor has been re-initialized with new substitutions
+        if reset:
+            # reset filter
+            if self.__average_window is not None:
+                self.__average_window.clear()
+            if self.__median_window is not None:
+                self.__median_window.clear()  # reset filter
+        # calculate error between substitutions
+        error, outputs, values = self._error_matrix(itoms, reset)
+        # sum error per value
+        error = error.sum(1)
+        # order errors per substitution
+        error_per_substitution = [[] for s in self.substitutions]
+        for i, e in enumerate(error):
+            s_idx = i % len(self.substitutions)
+            error_per_substitution[s_idx].append(e)
+        # minimum error over the current and delayed values
+        error = [min(errors) for errors in error_per_substitution]
         # filter (apply average first and then filter outliers with median)
         if self.__average_window is not None:
             self.__average_window.append(error)
