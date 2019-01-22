@@ -62,6 +62,14 @@ class ItomTestCase(unittest.TestCase):
         a = Itom('a', interval([0.9, 1.1]))
         self.assertTrue(1 in a.v)
 
+    def test_delay(self):
+        a = Itom('a', interval([0.9, 1.1]))
+        self.assertEqual(a.delay, 0)
+        b = Itom('b', interval([0.9, 1.1]), delay=1)
+        self.assertEqual(b.delay, 1)
+        itoms = Itoms([a, b])
+        self.assertEqual(itoms.delay, 1)
+
 
 if __name__ == '__main__':
         unittest.main()

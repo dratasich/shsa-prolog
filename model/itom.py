@@ -13,13 +13,15 @@ Moreover, each itom provides following explanation of the data:
 - t = timestamp of the acquisition or generation of the value
 and properties:
 - name = identifier of the itom
+- delay = the itom may be delayed by this amount of time
 
 An itom is associated to a (single) variable of the SHSA knowledge base,
 however, a variable can be provided by several itoms (variable:itoms -- 1:*).
 
-[Kop14] H. Kopetz. Self-Healing by Property-Guided Structural Adaptation. In
-2014 IEEE 17th International Symposium on Object/Component/Service-oriented
-Real-time Distributed Computing (ISORC), pages 17--24, June 2014.
+[Kop14] H. Kopetz. A Conceptual Model for the Information Transfer in
+        Systems-of-Systems. In 2014 IEEE 17th International Symposium on
+        Object/Component/Service-oriented Real-time Distributed Computing
+        (ISORC), pages 17--24, June 2014.
 
 """
 
@@ -35,7 +37,7 @@ class Itom(Variable):
 
     """
 
-    def __init__(self, name, value, timestamp=None, variable=None):
+    def __init__(self, name, value, timestamp=None, variable=None, delay=0):
         self.__value = value
         """Value of the variable given this itom."""
         self.__timestamp = timestamp
@@ -43,6 +45,17 @@ class Itom(Variable):
 
         For instance, use the Unix epoch time:
         - https://www.unixtimestamp.com/
+
+        """
+        self.__delay = delay
+        """Maximum time delay of the value.
+
+        An itom might be delayed (also in the physical world; this delay might
+        vary over time and from itom to itom), i.e., the measurement represents
+        a state some time ago.
+
+        The delay is added to the timestamp.
+        It represents the temporal uncertainty.
 
         """
         self.__variable = None
@@ -75,6 +88,10 @@ class Itom(Variable):
     def t(self, timestamp):
         """Set the timestamp of this itom in seconds."""
         self.__timestamp = timestamp
+
+    @property
+    def delay(self):
+        return self.__delay
 
     def __str__(self):
         return self._name
@@ -152,3 +169,11 @@ class Itoms(OrderedDict):
                 availability[v] = []
             availability[v].append(itom)
         return availability
+
+    @property
+    def delay(self):
+        """Return maximum delay of the itoms."""
+        try:
+            return max([i.delay for i in self.values()])
+        except Exception as e:
+            return 0

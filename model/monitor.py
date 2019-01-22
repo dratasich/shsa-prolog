@@ -141,7 +141,12 @@ class Monitor(object):
                 self.__average_window.clear()
             if self.__median_window is not None:
                 self.__median_window.clear()  # reset filter
+            # reset queue
+            self.__queue = deque(maxlen=(itoms.delay + 1))
+            self.__queue_values = deque(maxlen=(len(itoms) * (itoms.delay + 1)))
         self.__itoms = itoms  # save to identify changes in the next monitor step
+        # put the itoms into the queue
+        self.__queue.append(itoms)
         # transform: bring to common domain
         outputs = Itoms()
         for i, s in enumerate(self.__substitutions):
@@ -149,9 +154,10 @@ class Monitor(object):
             outputs[s] = result[self.__domain]
         # values to compare
         values = [output.v for output in outputs.values()]
+        self.__queue_values.extend(values)
         # compare: squared error matrix (non-overlap of intervals)
-        se = np.zeros((len(values), len(values)))
-        for i, v in enumerate(values):
+        se = np.zeros((len(self.__queue_values), len(values)))
+        for i, v in enumerate(self.__queue_values):
             for j, w in enumerate(values):
                 # error between (non-interval) values
                 #se[i,j] = (v - w) * (v - w)
