@@ -21,14 +21,10 @@ from model.itom import Itom, Itoms
 from model.problog_interface import ProblogInterface
 
 
-class Monitor(object):
-    """Monitor transfers itoms to a given common domain exploiting a SHSA model and
-    checks for equality.
+class BaseMonitor(object):
+    """Base class for monitors."""
 
-    """
-
-    def __init__(self, model, domain, itoms=[], librarypaths=["./model/"],
-                 average_filter_window_size=0, median_filter_window_size=0):
+    def __init__(self, model, domain, itoms=[], librarypaths=["./model/"]):
         """Initialize the monitor.
 
         model -- SHSA knowledge base collecting the relations between
@@ -49,24 +45,15 @@ class Monitor(object):
         """Available itoms or last itoms monitored.
         Used to identify a change in the itoms."""
         self.__substitutions = None
-        """Substitutions used to bring the itoms into the common domain."""
+        """List of substitutions used to bring the itoms into the common domain."""
         try:
             self.__substitutions = self.__collect_substitutions(itoms)
         except problog.engine.UnknownClause as e:
             # no itomsOf in the problog model (needed to find substitutions)
             # we will try later (monitor)
             pass
-        # filters
-        self.__median_window = None
-        """Window to apply np.median to the monitor results."""
-        if median_filter_window_size > 0:
-            self.__median_window = deque(maxlen=median_filter_window_size)
-        self.__average_window = None
-        """Window to apply np.average to the monitor results."""
-        if average_filter_window_size > 0:
-            self.__average_window = deque(maxlen=average_filter_window_size)
         # debugging
-        self.__debug_callback = None
+        self._debug_callback = None
         """Called at the end of monitor(.) to debug the monitor step."""
 
     @property
@@ -81,7 +68,8 @@ class Monitor(object):
 
     @property
     def substitutions(self):
-        """Returns the monitoring domain."""
+        """Returns the list of substitutions used to bring the itoms into the common
+        domain."""
         return self.__substitutions
 
     def update(self, model, domain):
@@ -91,7 +79,7 @@ class Monitor(object):
         self.__pli.load(model)
 
     def set_debug_callback(self, fct):
-        self.__debug_callback = fct
+        self._debug_callback = fct
         return
 
     def __collect_substitutions(self, itoms=[]):
@@ -122,7 +110,62 @@ class Monitor(object):
                     self.__itoms[v.name] = Itom(v.name, 0.0, variable=v.name)
         return S
 
+    def __recollect(self, itoms):
+        recollected = False
+        if self.__substitutions is None \
+           or set(itoms.keys()) != set(self.__itoms.keys()):
+            self.__substitutions = self.__collect_substitutions(itoms)
+            recollected = True
+        return recollected
+
+    def _monitor(self, itoms, reset=False):
+        raise NotImplementedError
+
     def monitor(self, itoms):
+        itoms = Itoms(itoms)
+        # recollect substitutions if itoms changed
+        reset = self.__recollect(itoms)
+        self.__itoms = itoms  # save to identify changes in the next monitor step
+        # monitor implemented in sub class
+        failed = self._monitor(itoms, reset)
+        # done
+        return failed
+
+
+class Monitor(BaseMonitor):
+    """Monitor transfers itoms to a given common domain exploiting a SHSA model and
+    checks for equality by interval arithmetic.
+
+    """
+
+    def __init__(self, model, domain, itoms=[], librarypaths=["./model/"],
+                 average_filter_window_size=0, median_filter_window_size=0):
+        """Initialize the monitor.
+
+        model -- SHSA knowledge base collecting the relations between
+            variables.
+        domain -- Common domain (a variable in the knowledge base) where the
+            itoms will be compared to each other.
+        itoms -- Itoms-object holding inputs to the monitor.
+        librarypaths -- Set paths of problog libraries used in model.
+        filter_window_size -- Set the size of the window for the corresponding
+            filter.
+
+        """
+        # filters
+        self.__median_window = None
+        """Window to apply np.median to the monitor results."""
+        if median_filter_window_size > 0:
+            self.__median_window = deque(maxlen=median_filter_window_size)
+        self.__average_window = None
+        """Window to apply np.average to the monitor results."""
+        if average_filter_window_size > 0:
+            self.__average_window = deque(maxlen=average_filter_window_size)
+        # init BaseMonitor
+        super(Monitor, self).__init__(model, domain, itoms=itoms,
+                                      librarypaths=librarypaths)
+
+    def _monitor(self, itoms, reset=False):
         """Fault detection on given itoms.
 
         itoms -- dictionary of itoms
@@ -131,11 +174,8 @@ class Monitor(object):
         with error > 0). If everything is fine, None is returned.
 
         """
-        # recollect substitutions, typically, when itoms change
-        itoms = Itoms(itoms)
-        if self.__substitutions is None \
-           or set(itoms.keys()) != set(self.__itoms.keys()):
-            self.__substitutions = self.__collect_substitutions(itoms)
+        # itoms have changed, monitor has been re-initialized with new substitutions
+        if reset:
             # reset filter
             if self.__average_window is not None:
                 self.__average_window.clear()
@@ -144,14 +184,13 @@ class Monitor(object):
             # reset queue
             self.__queue = deque(maxlen=(itoms.delay + 1))
             self.__queue_values = deque(maxlen=(len(itoms) * (itoms.delay + 1)))
-        self.__itoms = itoms  # save to identify changes in the next monitor step
         # put the itoms into the queue
         self.__queue.append(itoms)
         # transform: bring to common domain
         outputs = Itoms()
-        for i, s in enumerate(self.__substitutions):
+        for i, s in enumerate(self.substitutions):
             result = s.execute(itoms)
-            outputs[s] = result[self.__domain]
+            outputs[s] = result[self.domain]
         # values to compare
         values = [output.v for output in outputs.values()]
         self.__queue_values.extend(values)
@@ -178,9 +217,9 @@ class Monitor(object):
         failed = None
         if min(error) > 0:
             idx = list(error).index(max(error))
-            failed = self.__substitutions[idx]
+            failed = self.substitutions[idx]
         # debug
-        if self.__debug_callback is not None:
-            self.__debug_callback(outputs, values, error, failed)
+        if self._debug_callback is not None:
+            self._debug_callback(outputs, values, error, failed)
         # done
         return failed
