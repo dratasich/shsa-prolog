@@ -37,6 +37,8 @@ class Function(object):
         self.__code = code
         """Code to be executed which transforms the input variables to the
         output variable."""
+        self.__locals = {}
+        """Saves local variables to keep the state of used variables in code."""
         name_is_identifier = False
         try:
             name_is_identifier = name.isidentifier()
@@ -126,13 +128,14 @@ class Function(object):
         # generate code
         code = self.__enclosed_code()
         # execute code
-        local_vars = {i.codename: i for i in itoms.values()}
+        itom_vars = {i.codename: i for i in itoms.values()}
+        self.__locals.update(itom_vars)
         exec(code,
              {'Itom': Itom, 'copy': copy, 'interval': interval},
-             local_vars)
+             self.__locals)
         # local_vars may include utils and functions
         # -> keep only inputs and output
-        itoms[self.vout.name] = local_vars[self.vout.name]
+        itoms[self.vout.name] = self.__locals[self.vout.name]
         return itoms
 
     def __str__(self):

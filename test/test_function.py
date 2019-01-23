@@ -84,6 +84,24 @@ class FunctionTestCase(unittest.TestCase):
         o = f.execute(Itoms([b, c]))
         self.assertEqual(o['a'].v, interval([2, 4]))
 
+    def test_preserve_vars(self):
+        # note: local variables can only preserved when
+        #   - the function is *not* wrapped
+        # The variables are created as local variables of the function
+        # (global c does not work here -- there is no global variable c).
+        f = Function('a', ['b'],
+                     "try:\n" \
+                     "    c = c + 1\n" \
+                     "except:\n"
+                     "    c = 0\n" \
+                     "a.v = b.v + c\n",
+                     name="inc", wrap=False)
+        b = Itom('b', 1)
+        o = f.execute([b])
+        self.assertEqual(o['a'].v, 1)
+        o = f.execute([b])
+        self.assertEqual(o['a'].v, 2)
+
 
 if __name__ == '__main__':
         unittest.main()

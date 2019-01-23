@@ -118,7 +118,7 @@ class ProblogInterface(object):
         relation = expr_result['relation']
         vin = expr_result['inputs']
         code = self.__get_code_of(relation)
-        return Function(vout, vin, code, name=relation)
+        return Function(vout, vin, code, name=relation, wrap=False)
 
     def __get_code_of(self, relation):
         """Returns the code of the relation."""
