@@ -143,6 +143,38 @@ class MonitorTestCase(unittest.TestCase):
         self.assertNotEqual(failed, None)
         self.assertTrue('b1' in [v.name for v in failed.vin])
 
+    def test_monitor_with_delay_model(self):
+        m = Monitor("test/test_py-monitor-delay-simple.pl", 'x')
+        # delayed step function (x1 is slower than a1)
+        i0 = Itoms([Itom('a1', 0, variable='a'), Itom('x1', 0, variable='x')])
+        i1 = Itoms([Itom('a1', 1, variable='a'), Itom('x1', 0, variable='x')])
+        i2 = Itoms([Itom('a1', 1, variable='a'), Itom('x1', 1, variable='x')])
+        failed = m.monitor(i0)
+        self.assertEqual(failed, None)
+        failed = m.monitor(i0)
+        self.assertEqual(failed, None)
+        failed = m.monitor(i1)
+        self.assertEqual(failed, None)
+        # x1 (value is still 0) doesn't follow a1 (v=1)
+        failed = m.monitor(i1)
+        self.assertNotEqual(failed, None)
+        failed = m.monitor(i2)
+        self.assertEqual(failed, None)
+        # delay = 2 timesteps
+        m = Monitor("test/test_py-monitor-delay-general.pl", 'x')
+        failed = m.monitor(i0)
+        self.assertEqual(failed, None)
+        failed = m.monitor(i0)
+        self.assertEqual(failed, None)
+        failed = m.monitor(i1)
+        self.assertEqual(failed, None)
+        failed = m.monitor(i1)
+        self.assertEqual(failed, None)
+        failed = m.monitor(i1)
+        self.assertNotEqual(failed, None)
+        failed = m.monitor(i2)
+        self.assertEqual(failed, None)
+
 
 if __name__ == '__main__':
         unittest.main()
