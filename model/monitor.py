@@ -46,8 +46,11 @@ class BaseMonitor(object):
         Used to identify a change in the itoms."""
         self.__substitutions = None
         """List of substitutions used to bring the itoms into the common domain."""
+        # workaround: for ROS monitor (subscribe based on model)
         try:
             self.__substitutions = self.__collect_substitutions(itoms)
+            # workaround: triggers reset on first monitor (necessary to fully initialize)
+            self.__itoms = Itoms(itoms)
         except problog.engine.UnknownClause as e:
             # no itomsOf in the problog model (needed to find substitutions)
             # we will try later (monitor)
@@ -85,7 +88,7 @@ class BaseMonitor(object):
     def __collect_substitutions(self, itoms=[]):
         """Find relations from variables (given itoms) to domain."""
         program = "\n"
-        if len(itoms) > 0:
+        if "itomsOf" not in self.__pli.program and len(itoms) > 0:
             # be sure itoms is of the right type 'Itoms'
             itoms = Itoms(itoms)
             # append available itoms to program with "itomsOf(variable,[itom1,..])"
@@ -252,7 +255,7 @@ class Monitor(BaseMonitor):
             failed = self.substitutions[idx]
         # debug
         if self._debug_callback is not None:
-            self._debug_callback(outputs, values, error, failed)
+            self._debug_callback(itoms, outputs, values, error, failed)
         # done
         return failed
 
