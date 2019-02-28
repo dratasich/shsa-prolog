@@ -347,10 +347,9 @@ class BayesMonitor(Monitor):
         for i in range(0,len(match)):
             for j in range(i+1,len(match)):
                 m = str(match[i, j]).lower()
-                program += f"evidence(match(s{i},s{j}), {m}).\n"
-                # program += f"{match[i, j]}::match(s{i},s{j})\n"
+                program += "evidence(match(s{},s{}), {}).\n".format(i, j, m)
         for i in range(len(match)):
-            program += f"query(failed(s{i}, s{(i+1)%3}, s{(i+2)%3})).\n"
+            program += "query(failed(s{}, s{}, s{})).\n".format(i, (i+1)%3, (i+2)%3)
         result = pli.evaluate(program)
         probs = result.values()  # probabilities
         # return substitution with highest failure probability

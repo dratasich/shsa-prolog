@@ -1,10 +1,11 @@
 #!/bin/bash
 
 scriptdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+export PYTHONPATH="$scriptdir/.."
 
 pl_CMD="problog -L $scriptdir/../model/"
 pl_testfiles="$(ls "$scriptdir"/test_*.pl)"
-py_CMD="python -m unittest"
+py_CMD="python"
 py_testfiles="$(ls "$scriptdir"/test_*.py)"
 
 # colors
@@ -44,7 +45,7 @@ done
 # run python tests
 for test in $py_testfiles
 do
-    result=$(cd $scriptdir/..; $py_CMD $test 2> /dev/null)
+    result=$($py_CMD $test 2> /dev/null)
     status=$(echo $?)
     print_result $test $status $result
 done
