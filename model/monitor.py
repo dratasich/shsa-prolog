@@ -97,7 +97,8 @@ class BaseMonitor(object):
                 names = [i.name for i in il]
                 program += "itomsOf({},[{}]).\n".format(variable, ','.join(names))
             program += "\n"
-        assert "itomsOf" in program or "itomsOf" in self.__pli.program
+        if len(itoms) > 0:
+            assert "itomsOf" in program or "itomsOf" in self.__pli.program
         # get all valid substitutions for the domain
         # -> query problog knowledge base
         program += "query(substitution({},S)).".format(self.__domain)

@@ -23,8 +23,7 @@ except:
 x.v = a_delayed.v
 ").
 
-% here: don't add availability
-% itomsOf(..) will be appended by the monitor!
+% here: don't add availability (appended by monitor!)
 
 % tests are in: test_monitor.py
 % here: don't add queries!

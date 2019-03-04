@@ -30,8 +30,7 @@ x.v = value_del
 ").
 
 
-% here: don't add availability
-% itomsOf(..) will be appended by the monitor!
+% here: don't add availability (appended by the monitor!)
 
 % tests are in: test_monitor.py
 % here: don't add queries!
