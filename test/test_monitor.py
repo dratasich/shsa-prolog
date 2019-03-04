@@ -120,6 +120,20 @@ class MonitorTestCase(unittest.TestCase):
         failed = m.monitor(ilate)
         self.assertEqual(failed, None)
 
+    def test_timestamp_model(self):
+        m = Monitor("test/test_py-monitor-timestamp-simple.pl", 'c')
+        a1 = Itom('a1', 1, interval([0.11, 0.21]), variable='a')
+        b1 = Itom('b1', 2, interval([0.12, 0.22]), variable='b')
+        c1 = Itom('c1', 3, interval([0.05, 0.15]), variable='c')
+        c2 = Itom('c2', 3, interval([0.14, 0.24]), variable='c')
+        failed = m.monitor(Itoms([a1, b1, c1, c2]))
+        self.assertEqual(failed, None)
+        # wrong value, however time stamp do not overlap -> won't be used for comparison
+        a1.v = 0
+        a1.t = interval([0.0, 0.1])
+        failed = m.monitor(Itoms([a1, b1, c1, c2]))
+        self.assertEqual(failed, None)
+
     def test_monitor_with_delay_model(self):
         m = Monitor("test/test_py-monitor-delay-simple.pl", 'x')
         # delayed step function (x1 is slower than a1)
