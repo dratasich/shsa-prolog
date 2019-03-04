@@ -158,8 +158,6 @@ class Monitor(BaseMonitor):
             filter.
         buffer_size -- Size of the itoms buffer.
             Itoms are put in a queue to compensate delayed itoms.
-            The size is automatically increased as soon as
-            an itom cannot be compared due to mismatched time stamps.
 
         """
         # number of past monitor calls the comparison uses the itoms from
@@ -206,9 +204,8 @@ class Monitor(BaseMonitor):
         and all timestamps of the itoms in a collection overlap.
 
         """
-        itoms = Itoms(available_itoms)
         # filter itoms that are inputs of s, sorted by signal
-        itoms = {v.name: [itom for itom in itoms.values()
+        itoms = {v.name: [itom for itom in available_itoms
                           if itom.name == v.name]
                  for v in s.vin}
         # combine inputs -> cartesian product of inputs
@@ -264,7 +261,7 @@ class Monitor(BaseMonitor):
         outputs = []
         for i, s in enumerate(self.substitutions):
             # flatten queue
-            all_itoms = [itom for itoms in self.__queue for itom in itoms.items()]
+            all_itoms = [itom for itoms in self.__queue for itom in itoms.values()]
             # collect combinations of inputs for the substitution
             inputs = self._itoms_for_substitution(s, all_itoms)
             # save output itom only
@@ -309,7 +306,7 @@ class Monitor(BaseMonitor):
             error = np.median(np.array(self.__median_window), axis=0)
         # return the substitution with the biggest error
         failed = None
-        if min(error) > 0:
+        if sum(error) > 0:
             idx = list(error).index(max(error))
             failed = self.substitutions[idx]
         # debug
