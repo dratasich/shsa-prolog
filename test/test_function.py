@@ -83,6 +83,14 @@ class FunctionTestCase(unittest.TestCase):
         b = Itom('b', 1)
         o = f.execute(Itoms([b, c]))
         self.assertEqual(o['a'].v, interval([2, 4]))
+        # timestamps are intervals
+        code = "a.v = b.v + c.v" + "\n" + "a.t = b.t & c.t"
+        f = Function('a', ['b', 'c'], code, name="add")
+        b = Itom('b', 1, interval([0.1, 0.2]))
+        c = Itom('c', 2, interval([0.15, 0.25]))
+        o = f.execute(Itoms([b, c]))
+        self.assertEqual(o['a'].v, 3)
+        self.assertEqual(o['a'].t, interval([0.15, 0.2]))
 
     def test_preserve_vars(self):
         # note: local variables can only preserved when

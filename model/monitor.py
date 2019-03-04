@@ -178,14 +178,14 @@ class Monitor(BaseMonitor):
 
         Indices correspond to substitution indices.
 
-        This method considers delayed measurements too.
+        This method considers measurements with uncertain value and time.
 
         """
         # itoms have changed, monitor has been re-initialized with new substitutions
         if reset:
             # reset queue
-            self.__queue = deque(maxlen=(itoms.delay + 1))
-            self.__queue_values = deque(maxlen=(len(itoms) * (itoms.delay + 1)))
+            self.__queue = deque(maxlen=1)
+            self.__queue_values = deque(maxlen=(len(itoms) * 1))
         # put the itoms into the queue
         self.__queue.append(itoms)
         # transform: bring to common domain

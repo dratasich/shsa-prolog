@@ -62,17 +62,6 @@ class SubstitutionTestCase(unittest.TestCase):
         d = s2.diversity([s1])
         self.assertEqual(d, 1)
 
-    def test_delay(self):
-        s = Substitution([self.__f_add, self.__f_mult])
-        b = Itom('b', 1, delay=0)
-        c = Itom('c', 2, delay=2)
-        itoms = Itoms(list=[b, c])
-        self.assertEqual(s.delay(itoms), 2)
-        # unused itom
-        x = Itom('x', 3, delay=3)
-        itoms = Itoms(list=[b, c, x])
-        self.assertEqual(s.delay(itoms), 2)
-
 
 if __name__ == '__main__':
         unittest.main()

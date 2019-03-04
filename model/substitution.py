@@ -113,13 +113,3 @@ class Substitution(list):
             difference = my_inputs - s.vin
             diversity = diversity + len(difference)
         return diversity
-
-    def delay(self, itoms):
-        """Return maximum delay of the itoms used."""
-        itoms = Itoms(itoms)
-        used_itoms = [i for v, i in itoms.items()
-                      if v in [var.name for var in self.vin]]
-        try:
-            return max([i.delay for i in used_itoms])
-        except Exception as e:
-            return 0

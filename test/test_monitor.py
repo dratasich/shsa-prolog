@@ -101,48 +101,24 @@ class MonitorTestCase(unittest.TestCase):
         m.set_debug_callback(clbk)
         m.monitor(self.__itoms2)
 
-    def test_queue(self):
+    def test_time_uncertainty(self):
         m = Monitor("test/test_py-monitor-simple.pl", 'x')
-        # all itoms for which delay has been specified in the model
+        # itoms with uncertainties in time
         iok = Itoms([
-            Itom('x1', interval([9, 11]), variable='x', delay=0),
-            Itom('a1', interval([5, 6]), variable='a', delay=1),
-            Itom('b1', interval([4, 8]), variable='b', delay=1),
-        ])
-        ifaulty = Itoms([
-            Itom('x1', interval([9, 11]), variable='x', delay=0),
-            Itom('a1', interval([3, 4]), variable='a', delay=1),
-            Itom('b1', interval([6, 8]), variable='b', delay=1),
-        ])
-        inject_fault_i = [3,5,6,7]
-        trigger_fault_i = [6,7]
-        for i in range(0,max(inject_fault_i)):
-            itoms = ifaulty if i in inject_fault_i else iok
-            failed = m.monitor(itoms)
-            if i in trigger_fault_i:
-                self.assertNotEqual(failed, None)
-            else:
-                self.assertEqual(failed, None)
-
-    def test_bayes_monitor(self):
-        m = BayesMonitor("test/test_py-monitor-simple.pl", 'x')
-        iok = Itoms([
-            Itom('x1', interval([9, 11]), variable='x', delay=0),
-            Itom('a1', interval([5, 6]), variable='a', delay=1),
-            Itom('b1', interval([4, 8]), variable='b', delay=1),
-        ])
-        ifaulty = Itoms([
-            Itom('x1', interval([9, 11]), variable='x', delay=0),
-            Itom('a1', interval([4, 5]), variable='a', delay=1),
-            Itom('b1', interval([6, 8]), variable='b', delay=1),
+            Itom('x1', interval([9, 11]), timestamp=interval([0.1, 0.2]), variable='x'),
+            Itom('a1', interval([5, 6]), timestamp=interval([0.15, 0.25]), variable='a'),
+            Itom('b1', interval([4, 8]), timestamp=interval([0.1, 0.3]), variable='b'),
         ])
         failed = m.monitor(iok)
         self.assertEqual(failed, None)
-        failed = m.monitor(ifaulty)
+        # some itoms timestamps do not overlap
+        ilate = Itoms([
+            Itom('x1', interval([9, 11]), timestamp=interval([0.0, 0.09]), variable='x'),
+            Itom('a1', interval([5, 6]), timestamp=interval([0.15, 0.25]), variable='a'),
+            Itom('b1', interval([4, 8]), timestamp=interval([0.1, 0.3]), variable='b'),
+        ])
+        failed = m.monitor(ilate)
         self.assertEqual(failed, None)
-        failed = m.monitor(ifaulty)
-        self.assertNotEqual(failed, None)
-        self.assertTrue('b1' in [v.name for v in failed.vin])
 
     def test_monitor_with_delay_model(self):
         m = Monitor("test/test_py-monitor-delay-simple.pl", 'x')
