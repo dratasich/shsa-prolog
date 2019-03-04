@@ -86,16 +86,16 @@ class MonitorTestCase(unittest.TestCase):
         class Callback(object):
             def __init__(self):
                 self.called = False
-            def callback(self, itoms, outputs, values, error, failed):
+            def callback(self, itoms, outputs, error, failed):
                 self.called = True
         c = Callback()
         m.set_debug_callback(c.callback)
         m.monitor(self.__itoms2)
         self.assertTrue(c.called)
         # check variables we get for debugging
-        def clbk(itoms, outputs, values, error, failed):
+        def clbk(itoms, outputs, error, failed):
             self.assertEqual(self.__itoms2, itoms)
-            self.assertEqual(len(values), 3)
+            self.assertEqual(len(outputs), 3)
             self.assertEqual(len(error), 3)  # error for each substitution
             self.assertEqual(sum(error), 0)  # no error
         m.set_debug_callback(clbk)

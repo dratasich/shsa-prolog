@@ -12,7 +12,8 @@ Copied and adapted from the original SHSA package
 """
 
 from collections import OrderedDict, deque
-from interval import interval
+from interval import interval, inf
+import itertools
 import numpy as np
 import re
 import problog
@@ -143,7 +144,8 @@ class Monitor(BaseMonitor):
     """
 
     def __init__(self, model, domain, itoms=[], librarypaths=["./model/"],
-                 average_filter_window_size=0, median_filter_window_size=0):
+                 average_filter_window_size=0, median_filter_window_size=0,
+                 buffer_size=1):
         """Initialize the monitor.
 
         model -- SHSA knowledge base collecting the relations between
@@ -154,8 +156,15 @@ class Monitor(BaseMonitor):
         librarypaths -- Set paths of problog libraries used in model.
         filter_window_size -- Set the size of the window for the corresponding
             filter.
+        buffer_size -- Size of the itoms buffer.
+            Itoms are put in a queue to compensate delayed itoms.
+            The size is automatically increased as soon as
+            an itom cannot be compared due to mismatched time stamps.
 
         """
+        # number of past monitor calls the comparison uses the itoms from
+        self.__buffer_size = buffer_size
+        """Length of queue of saved itoms."""
         # filters
         self.__median_window = None
         """Window to apply np.median to the monitor results."""
@@ -169,12 +178,76 @@ class Monitor(BaseMonitor):
         super(Monitor, self).__init__(model, domain, itoms=itoms,
                                       librarypaths=librarypaths)
 
+    @property
+    def buffer_size(self):
+        """Returns the size of the buffer."""
+        return self.__buffer_size
+
+    def _comparable(self, itoms):
+        """Returns true when the timestamps of the itoms overlap."""
+        itoms = list(itoms)
+        overlap = interval([-inf, inf])
+        for itom in itoms:
+            # in case no timestamps are used, assume the values can be compared
+            try:
+                if itom.t is None:
+                    return True
+            except AttributeError as e:
+                # no itom at all (could be a simple integer)
+                return True
+            overlap = overlap & itom.t
+        return overlap != interval() #(overlap[0][1] - overlap[0][0]) == 0
+
+    def _itoms_for_substitution(self, s, available_itoms):
+        """Returns a list of possible inputs for the given substitution s.
+
+        Generate and return collections for an execution of s.
+        A collection contains exactly one itom per input of s
+        and all timestamps of the itoms in a collection overlap.
+
+        """
+        itoms = Itoms(available_itoms)
+        # filter itoms that are inputs of s, sorted by signal
+        itoms = {v.name: [itom for itom in itoms.values()
+                          if itom.name == v.name]
+                 for v in s.vin}
+        # combine inputs -> cartesian product of inputs
+        combs = itertools.product(*itoms.values())
+        itoms = [c for c in combs if self._comparable(c)]
+        return itoms
+
+    def _pairs_for_comparison(self, outputs):
+        """Returns combinations of outputs to compare againts."""
+        # pairwise
+        comparables = []
+        for si, oi in outputs:
+            for sj, oj in outputs:
+                if si == sj:
+                    continue
+                if not self._comparable([oi, oj]):
+                    continue
+                comparables.append((si, sj, oi, oj))
+        return comparables
+
+    def _error(self, v, w):
+        """Returns the error between two itoms."""
+        v = interval(v)
+        w = interval(w)
+        error = max(0, max(v[0][0], w[0][0]) - min(v[0][1], w[0][1]))
+        overlap = 0
+        intersection = v & w
+        if len(intersection) > 0:
+            overlap = abs(intersection[0][1] - intersection[0][0])
+        else:
+            assert error > 0
+            overlap = 0
+        return error, overlap
+
     def _compare(self, itoms, reset=False):
         """Calculate errors between substitutions.
 
-        Returns an error matrix of size nxm and related information.
-        - n .. number of substitutions * max delay.
-        - m .. number of substitutions
+        Returns an error matrix of size nxn and related information.
+        - n .. number of substitutions
 
         Indices correspond to substitution indices.
 
@@ -184,36 +257,28 @@ class Monitor(BaseMonitor):
         # itoms have changed, monitor has been re-initialized with new substitutions
         if reset:
             # reset queue
-            self.__queue = deque(maxlen=1)
-            self.__queue_values = deque(maxlen=(len(itoms) * 1))
-        # put the itoms into the queue
+            self.__queue = deque(maxlen=self.__buffer_size)
+        # save itoms for some time to compensate/make use of late itoms
         self.__queue.append(itoms)
-        # transform: bring to common domain
-        outputs = Itoms()
+        # execute substitutions with a feasable set of itoms
+        outputs = []
         for i, s in enumerate(self.substitutions):
-            result = s.execute(itoms)
-            outputs[s] = result[self.domain]
+            # flatten queue
+            all_itoms = [itom for itoms in self.__queue for itom in itoms.items()]
+            # collect combinations of inputs for the substitution
+            inputs = self._itoms_for_substitution(s, all_itoms)
+            # save output itom only
+            # keep links to substitutions -> tuple (substitution, output)
+            outputs.extend([(i, s.execute(v)[s.vout.name]) for v in inputs])
         # values to compare
-        values = [output.v for output in outputs.values()]
-        self.__queue_values.extend(values)
+        comparables = self._pairs_for_comparison(outputs)
         # compare: error matrix (non-overlap of intervals)
-        error = np.zeros((len(self.__queue_values), len(values)))
-        overlap = np.zeros((len(self.__queue_values), len(values)))
-        for i, v in enumerate(self.__queue_values):
-            for j, w in enumerate(values):
-                # squared error between (non-interval) values
-                #se[i,j] = (v - w) * (v - w)
-                # intersect intervals
-                v = interval(v)
-                w = interval(w)
-                error[i,j] = max(0, max(v[0][0], w[0][0]) - min(v[0][1], w[0][1]))
-                intersection = v & w
-                if len(intersection) > 0:
-                    overlap[i,j] = abs(intersection[0][1] - intersection[0][0])
-                else:
-                    assert error[i,j] > 0
-                    overlap[i,j] = 0
-        return error, overlap, outputs, self.__queue_values
+        n = len(self.substitutions)
+        error = np.zeros((n, n))
+        overlap = np.zeros((n, n))
+        for si, sj, oi, oj in comparables:
+            error[si][sj], overlap[si][sj] = self._error(oi.v, oj.v)
+        return error, overlap, outputs
 
     def _monitor(self, itoms, reset=False):
         """Fault detection on given itoms.
@@ -232,16 +297,9 @@ class Monitor(BaseMonitor):
             if self.__median_window is not None:
                 self.__median_window.clear()  # reset filter
         # calculate error between substitutions
-        error, _, outputs, values = self._compare(itoms, reset)
-        # sum error per value
+        error, _, outputs = self._compare(itoms, reset)
+        # sum error per substitution
         error = error.sum(1)
-        # order errors per substitution
-        error_per_substitution = [[] for s in self.substitutions]
-        for i, e in enumerate(error):
-            s_idx = i % len(self.substitutions)
-            error_per_substitution[s_idx].append(e)
-        # minimum error over the current and delayed values
-        error = [min(errors) for errors in error_per_substitution]
         # filter (apply average first and then filter outliers with median)
         if self.__average_window is not None:
             self.__average_window.append(error)
@@ -256,7 +314,7 @@ class Monitor(BaseMonitor):
             failed = self.substitutions[idx]
         # debug
         if self._debug_callback is not None:
-            self._debug_callback(itoms, outputs, values, error, failed)
+            self._debug_callback(itoms, outputs, error, failed)
         # done
         return failed
 
