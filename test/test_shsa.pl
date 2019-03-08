@@ -30,17 +30,10 @@ accuracy(e1,1).
 %% testcases
 
 % nodes and edges defined by relation(..)
-query(node(a)).
-query(node(r1)).
 query(variable(a)).
 query(relation(r1)).
 query(variable(b)).
 query(variable(c)).
-query(edge(r1,a)).
-query(edge(b,r1)).
-query(edge(c,r1)).
-query(not edge(a,c)).
-query(not edge(c,a)).
 
 % itoms
 query(itom(a1)).

@@ -23,14 +23,9 @@
 
 % node .. variable or function
 % a relation is a function out = f([in1, in2, ..])
-node(X) :- variable(X).
-node(X) :- relation(X).
 variable(O) :- function(O,_,_).
 variable(V) :- function(_,_,I), member(V,I).
 relation(R) :- function(_,R,_).
-% structure from function(..) facts
-edge(R,O) :- function(O,R,_).
-edge(V,R) :- function(_,R,I), member(V,I).
 
 % define implementation of a relation in your model
 % the python implementation allows to have a value (.v) and a timestamp (.t)
