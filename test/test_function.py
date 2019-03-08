@@ -48,6 +48,11 @@ class FunctionTestCase(unittest.TestCase):
         b.v = 1; c.v = 2
         v = f.execute(itoms)
         self.assertAlmostEqual(v['a'].v, 3)
+        # function setting timestamp
+        f = Function('a', ['b', 'c'], "a.v = b.v + c.v; a.t = max(b.t, c.t)", name="add")
+        b.t = 0; c.t = 1
+        v = f.execute(itoms)
+        self.assertEqual(v['a'].t, 1)
         # test execution with non-Python-identifiers as variables
         b = Itom('0b', 1)
         c = Itom('1c', 2)

@@ -25,7 +25,8 @@ from model.problog_interface import ProblogInterface
 class BaseMonitor(object):
     """Base class for monitors."""
 
-    def __init__(self, model, domain, itoms=[], librarypaths=["./model/"]):
+    def __init__(self, model, domain, itoms=[], librarypaths=["./model/"],
+                 recollect=True):
         """Initialize the monitor.
 
         model -- SHSA knowledge base collecting the relations between
@@ -42,6 +43,9 @@ class BaseMonitor(object):
         """SHSA knowledge base."""
         self.__domain = domain
         """Variable domain where the itoms shall be compared."""
+        self.__recollect_enabled = recollect
+        """Indicates that a change in the itoms should trigger a re-query of the
+        substitutions."""
         self.__itoms = Itoms(itoms)
         """Available itoms or last itoms monitored.
         Used to identify a change in the itoms."""
@@ -128,9 +132,11 @@ class BaseMonitor(object):
 
     def monitor(self, itoms):
         itoms = Itoms(itoms)
-        # recollect substitutions if itoms changed
-        reset = self.__recollect(itoms)
-        self.__itoms = itoms  # save to identify changes in the next monitor step
+        reset = False
+        if self.__recollect_enabled:
+            # recollect substitutions if itoms changed
+            reset = self.__recollect(itoms)
+            self.__itoms = itoms  # save to identify changes in the next monitor step
         # monitor implemented in sub class
         failed = self._monitor(itoms, reset)
         # done
@@ -145,7 +151,7 @@ class Monitor(BaseMonitor):
 
     def __init__(self, model, domain, itoms=[], librarypaths=["./model/"],
                  average_filter_window_size=0, median_filter_window_size=0,
-                 buffer_size=1):
+                 buffer_size=1, recollect=True, uncertainty=None):
         """Initialize the monitor.
 
         model -- SHSA knowledge base collecting the relations between
@@ -163,6 +169,9 @@ class Monitor(BaseMonitor):
         # number of past monitor calls the comparison uses the itoms from
         self.__buffer_size = buffer_size
         """Length of queue of saved itoms."""
+        self.__queue = deque(maxlen=self.__buffer_size)
+        """Queue collecting itoms for comparison."""
+        self._uncertainty = uncertainty
         # filters
         self.__median_window = None
         """Window to apply np.median to the monitor results."""
@@ -174,12 +183,47 @@ class Monitor(BaseMonitor):
             self.__average_window = deque(maxlen=average_filter_window_size)
         # init BaseMonitor
         super(Monitor, self).__init__(model, domain, itoms=itoms,
-                                      librarypaths=librarypaths)
+                                      librarypaths=librarypaths,
+                                      recollect=recollect)
 
     @property
     def buffer_size(self):
         """Returns the size of the buffer."""
         return self.__buffer_size
+
+    def _make_itom_uncertain(self, itom, t_error, v_error):
+        v = itom.v
+        t = itom.t
+        # make value uncertain
+        try:
+            # itom.v is an iterable, apply uncertainty to all elements
+            v = [interval([i + v_error[0], i + v_error[1]]) for i in v]
+        except TypeError as e:
+            v = interval([v + v_error[0], v + v_error[1]])
+        except ComponentError as e:
+            pass
+        itom.v = v  # resets timestamp!
+        # make time uncertain (after setting the value!)
+        if t is not None:
+            t = interval([t + t_error[0], t + t_error[1]])
+        itom.t = t
+        return itom
+
+    def _make_uncertain(self, substitution, itom):
+        if self._uncertainty is None:
+            return itom
+        # check uncertainty of substitution inputs and combine according to the
+        # substitution's functions (with a dummy input)
+        inputs = substitution.vin
+        # TODO: combine uncertainties
+        # for i in inputs:
+        assert len(inputs) == 1  # for now, only single input per substitution
+        i = list(inputs)[0]
+        terr = [self._uncertainty[i.name]['terr_low'],
+                self._uncertainty[i.name]['terr_high']]
+        verr = [self._uncertainty[i.name]['verr_low'],
+                self._uncertainty[i.name]['verr_high']]
+        return self._make_itom_uncertain(itom, terr, verr)
 
     def _comparable(self, itoms):
         """Returns true when the timestamps of the itoms overlap."""
@@ -257,16 +301,17 @@ class Monitor(BaseMonitor):
             self.__queue = deque(maxlen=self.__buffer_size)
         # save itoms for some time to compensate/make use of late itoms
         self.__queue.append(itoms)
+        # flatten queue
+        all_itoms = [itom for itoms in self.__queue for itom in itoms.values()]
         # execute substitutions with a feasable set of itoms
         outputs = []
         for i, s in enumerate(self.substitutions):
-            # flatten queue
-            all_itoms = [itom for itoms in self.__queue for itom in itoms.values()]
             # collect combinations of inputs for the substitution
             inputs = self._itoms_for_substitution(s, all_itoms)
             # save output itom only
             # keep links to substitutions -> tuple (substitution, output)
-            outputs.extend([(i, s.execute(v)[s.vout.name]) for v in inputs])
+            outputs.extend([(i, self._make_uncertain(s, s.execute(v)[s.vout.name]))
+                            for v in inputs])
         # values to compare
         comparables = self._pairs_for_comparison(outputs)
         # compare: error matrix (non-overlap of intervals)
