@@ -120,6 +120,7 @@ class BaseMonitor(object):
         return S
 
     def __recollect(self, itoms):
+        itoms = Itoms(itoms)
         recollected = False
         if self.__substitutions is None \
            or set(itoms.keys()) != set(self.__itoms.keys()):
@@ -131,7 +132,6 @@ class BaseMonitor(object):
         raise NotImplementedError
 
     def monitor(self, itoms):
-        itoms = Itoms(itoms)
         reset = False
         if self.__recollect_enabled:
             # recollect substitutions if itoms changed
@@ -295,6 +295,11 @@ class Monitor(BaseMonitor):
         This method considers measurements with uncertain value and time.
 
         """
+        try:
+            # list of itoms is expected, not a dictionary or object of class Itoms
+            itoms = list(itoms.values())
+        except AttributeError as e:
+            pass
         # itoms have changed, monitor has been re-initialized with new substitutions
         if reset:
             # reset queue
@@ -302,7 +307,10 @@ class Monitor(BaseMonitor):
         # save itoms for some time to compensate/make use of late itoms
         self.__queue.append(itoms)
         # flatten queue
-        all_itoms = [itom for itoms in self.__queue for itom in itoms.values()]
+        all_itoms = [itom for itoms_list in self.__queue for itom in itoms_list]
+        # make itoms unique, to avoid multiple additions of an error
+        # necessary when used with ROS monitor (port reuses itoms)
+        #all_itoms = list(set(all_itoms)) # does not work like that!
         # execute substitutions with a feasable set of itoms
         outputs = []
         for i, s in enumerate(self.substitutions):
@@ -319,7 +327,9 @@ class Monitor(BaseMonitor):
         error = np.zeros((n, n))
         overlap = np.zeros((n, n))
         for si, sj, oi, oj in comparables:
-            error[si][sj], overlap[si][sj] = self._error(oi.v, oj.v)
+            e, o = self._error(oi.v, oj.v)
+            error[si][sj] += e
+            overlap[si][sj] += o
         return error, overlap, outputs
 
     def _monitor(self, itoms, reset=False):
