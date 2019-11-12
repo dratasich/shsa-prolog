@@ -19,4 +19,12 @@ Creating and sourcing the virtual environment (line 2-3) is optional.
 
 ## Usage
 
-See experiments, tests and [ROS demos](https://github.com/dratasich/shsa_ros).
+See [experiments](https://github.com/tuw-cpsg/paper-shsa-monitor-experiments)
+and [ROS demos](https://github.com/dratasich/shsa_ros).
+
+
+## References
+
+Ratasich, D., Platzer, M., Grosu, R., Bartocci, E.
+[Adaptive Fault Detecion exploiting Redundancy with Uncertainties in Space and Time.](https://doi.org/TBD)
+Self-Adaptive and Self-Organizing Systems (SASO), 2019 13th IEEE International Conference on. IEEE, 2019.
